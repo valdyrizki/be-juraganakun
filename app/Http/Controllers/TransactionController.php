@@ -325,7 +325,7 @@ Request : ".$description."
     {
         $isSuccess = true;
         $msg = 'SUCCESS';
-        $data = new TransactionCollection(TransactionResource::collection(Transaction::all()));
+        $data = TransactionResource::collection(Transaction::orderBy('invoice_id','DESC')->get());
 
         return response()->json([
             'isSuccess' => $isSuccess,
