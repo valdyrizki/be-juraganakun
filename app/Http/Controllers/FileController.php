@@ -2,12 +2,10 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Transaction;
-use App\Models\User;
-use Carbon\Carbon;
+use App\Models\ProductFile;
 use Illuminate\Http\Request;
 
-class HomeController extends Controller
+class FileController extends Controller
 {
     /**
      * Display a listing of the resource.
@@ -85,21 +83,37 @@ class HomeController extends Controller
         //
     }
 
-    public function getAll()
+    public function get()
     {
         $isSuccess = true;
         $msg = 'SUCCESS';
+        $data = ProductFile::all();
 
-        $transaction = Transaction::whereDate('created_at',Carbon::now())->get();
-        $data = array(
-            'todays_income' => $transaction->sum('total_price'),
-            'complete_order' => $transaction->where('status',1)->count(), 
-            'pending_order' => $transaction->where('status',0)->count() ,
-            'cancel_order' => $transaction->where('status',9)->count(),
-            'total_order' => (int)Transaction::count(),
-            'total_user' => User::count(),
-            'total_asset' => (int)Transaction::sum('total_price'),
-        );
+        return response()->json([
+            'isSuccess' => $isSuccess,
+            'msg' => $msg,
+            'data' => $data,
+        ]);
+    }
+
+    public function getByInvoice(Request $request)
+    {
+        $isSuccess = true;
+        $msg = 'SUCCESS';
+        $data = ProductFile::where('invoice_id',$request->invoice_id)->get();
+
+        return response()->json([
+            'isSuccess' => $isSuccess,
+            'msg' => $msg,
+            'data' => $data,
+        ]);
+    }
+
+    public function getByProduct(Request $request)
+    {
+        $isSuccess = true;
+        $msg = 'SUCCESS';
+        $data = ProductFile::where('product_id',$request->product_id)->get();
 
         return response()->json([
             'isSuccess' => $isSuccess,
