@@ -92,13 +92,13 @@ class HomeController extends Controller
 
         $transaction = Transaction::whereDate('created_at',Carbon::now())->get();
         $data = array(
-            'todays_income' => $transaction->sum('total_price'),
+            'todays_income' => $transaction->where('status',1)->sum('total_price'),
             'complete_order' => $transaction->where('status',1)->count(), 
             'pending_order' => $transaction->where('status',0)->count() ,
             'cancel_order' => $transaction->where('status',9)->count(),
             'total_order' => (int)Transaction::count(),
             'total_user' => User::count(),
-            'total_asset' => (int)Transaction::sum('total_price'),
+            'total_asset' => (int)Transaction::where('status',1)->sum('total_price'),
         );
 
         return response()->json([

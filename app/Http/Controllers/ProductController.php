@@ -4,13 +4,11 @@ namespace App\Http\Controllers;
 
 use App\Http\Resources\ProductCollection;
 use App\Http\Resources\ProductResource;
-use App\Http\Resources\TransactionResource;
 use App\Models\Product;
 use App\Models\ProductFile;
 use App\Models\ProductImage;
 use App\Models\Stock;
 use App\Models\Transaction;
-use Carbon\Carbon;
 use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -384,6 +382,13 @@ class ProductController extends Controller
         $files = $request->file('files');
         $totalFile = count($files);
         if($totalFile>0){
+            if($totalFile > 200){
+                return response()->json([
+                    'isSuccess' => false,
+                    'msg' => 'Max Upload 200 File!',
+                    'data' => $request->all()
+                ]);
+            }
             $i = 1;
             foreach ($files as $file) {
                 $filename = $file->getClientOriginalName();
@@ -398,20 +403,34 @@ class ProductController extends Controller
                     $path = str_replace('+', '-', $path);
                     Storage::move('file/'.$file->hashName(), $path);
 
-                    $file = ProductFile::create([
-                        'product_id' => $data->product_id,
-                        'filename' => $filename,
-                        'path' => $path,
-                        'description' => 'Upload '.$i.'/'.$totalFile .'File',
-                        'code' => Str::orderedUuid(),
-                        'user_create' => Auth::id()
-                    ]);
+                    $isFileNmExist = ProductFile::where('filename',$filename)->first();
+                    if(! $isFileNmExist){
+                        $file = ProductFile::create([
+                            'product_id' => $data->product_id,
+                            'filename' => $filename,
+                            'path' => $path,
+                            'description' => 'Upload '.$i.'/'.$totalFile .'File',
+                            'code' => Str::orderedUuid(),
+                            'user_create' => Auth::id()
+                        ]);
+                    }else{
+                        return response()->json([
+                            'isSuccess' => false,
+                            'msg' => 'Filename '.$filename.' Already exist',
+                            'data' => $request->all()
+                        ]);
+                    }
                 }catch(Exception $e){
                     report($e);
                     $out = new \Symfony\Component\Console\Output\ConsoleOutput();
                     $out->writeln($e);
-                    $msg .= " - gagal upload image";
+                    $msg .= " - gagal upload stock";
                     DB::rollBack();
+                    return response()->json([
+                        'isSuccess' => false,
+                        'msg' => 'Terjadi kesalahan saat upload file!',
+                        'data' => $request->all()
+                    ]);
                 }
                 $i++;
             }
@@ -423,12 +442,22 @@ class ProductController extends Controller
             ]);
         }
 
-        Stock::create([
-            'product_id' => $data->product_id,
-            'stock_add' => $totalFile,
-            'description' => 'Stock Before = '.$data->stock,
-            'user_create' => Auth::id()
-        ]);
+        try{
+            Stock::create([
+                'product_id' => $data->product_id,
+                'stock_add' => $totalFile,
+                'description' => 'Stock Before = '.$data->stock,
+                'user_create' => Auth::id()
+            ]);
+        }catch(Exception $e){
+            return response()->json([
+                'isSuccess' => false,
+                'msg' => 'Gagal simpan history stock!',
+                'data' => $request->all()
+            ]);
+        }
+
+        
 
         $data->stock = $data->stock + $totalFile;
         $data->save();

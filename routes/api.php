@@ -5,6 +5,9 @@ use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\CommentController;
 use App\Http\Controllers\FileController;
 use App\Http\Controllers\HomeController;
+use App\Http\Controllers\JournalAccountController;
+use App\Http\Controllers\JournalCategoryController;
+use App\Http\Controllers\JournalTransactionController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\SettingController;
 use App\Http\Controllers\TransactionController;
@@ -120,6 +123,28 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/file','get');
         Route::get('/file/getbyinvoice','getByInvoice');
         Route::get('/file/getbyproduct','getByProduct');
+    }));
+
+    Route::controller(JournalAccountController::class)->group((function() {
+        Route::get('/journal-account','get');
+        Route::post('/journal-account/store','store');
+        Route::put('/journal-account/update','update');
+        Route::delete('/journal-account/delete','delete');
+    }));
+
+    Route::controller(JournalCategoryController::class)->group((function() {
+        Route::get('/journal-category','get');
+        Route::post('/journal-category/store','store');
+        Route::put('/journal-category/update','update');
+        Route::delete('/journal-category/delete','delete');
+    }));
+
+    Route::controller(JournalTransactionController::class)->group((function() {
+        Route::get('/journal-transaction','get');
+        Route::get('/journal-transaction/gettxid','getTxId');
+        Route::post('/journal-transaction/store','store');
+        Route::put('/journal-transaction/update','update');
+        Route::delete('/journal-transaction/delete','delete');
     }));
 
 });
