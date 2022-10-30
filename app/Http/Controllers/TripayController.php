@@ -11,7 +11,7 @@ class TripayController extends Controller
     public function createTrancaction(Request $req)
     {
         // dd($req->order_items);
-        if($req->bank == 'QRISC'){
+        if($req->bank == 77){
             $apiKey       = env("TRIPAY_API_KEY");
             $privateKey   = env("TRIPAY_PRIVATE_KEY");
             $merchantCode = env("TRIPAY_MERCHANT_CODE");
