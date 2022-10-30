@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Resources\TransactionCollection;
 use App\Http\Resources\TransactionResource;
+use App\Models\Bank;
 use App\Models\Product;
 use App\Models\ProductFile;
 use App\Models\Transaction;
@@ -447,8 +448,13 @@ Request : ".$description."
                 'data' => 'ID '.$request->invoice_id.' NOT FOUND'
             ]);
         }
+        
+        DB::beginTransaction();
         $data->status = 1;
         $data->save();
+        
+        $this->doJournalTrx($request->invoice_id); //Add Journal Transaction
+        DB::commit();
 
         return response()->json([
             'isSuccess' => $isSuccess,
@@ -513,14 +519,56 @@ Request : ".$description."
                 'data' => 'ID '.$request->invoice_id.' NOT FOUND'
             ]);
         }
+        DB::beginTransaction();
         $data->status = 9;
         $data->save();
+
+        $this->reversalJournalTrx($request->invoice_id); //Reversal Journal Transaction
+        DB::commit();
 
         return response()->json([
             'isSuccess' => $isSuccess,
             'msg' => $msg,
             'data' => new TransactionResource($data),
         ]);
+    }
+
+    public function doJournalTrx($invoice_id){
+        $transaction = Transaction::find($invoice_id);
+        if($transaction){
+            //Update Bank Balance
+            try{
+                $bank = Bank::find($transaction->bank_id);
+                if($bank){
+                    $bank->balance = $bank->balance + $transaction->total_price;
+                    $bank->save();
+                }
+            }catch(Exception $e){
+                report($e);
+                $msg = "Terjadi kesalahan saat update Bank Balance";
+                $transaction = $e->getMessage();
+                DB::rollback();
+            }
+        }
+    }
+
+    public function reversalJournalTrx($invoice_id){
+        $transaction = Transaction::find($invoice_id);
+        if($transaction){
+            //Update Bank Balance
+            try{
+                $bank = Bank::find($transaction->bank_id);
+                if($bank){
+                    $bank->balance = $bank->balance - $transaction->total_price;
+                    $bank->save();
+                }
+            }catch(Exception $e){
+                report($e);
+                $msg = "Terjadi kesalahan saat update Bank Balance";
+                $transaction = $e->getMessage();
+                DB::rollback();
+            }
+        }
     }
 
 }
