@@ -74,7 +74,7 @@ class TransactionController extends Controller
             'user_detail' => ["phone" => $phone_number ]
         );
         
-        if ($bank != "ADMIN") {
+        if ($bank != 77) {
             $user = Auth::user();
         }
         
@@ -99,7 +99,7 @@ class TransactionController extends Controller
                 'phone_number' => $phone_number,
                 'email' => $email,
                 'coupon' => $coupon,
-                'bank' => $bank,
+                'bank_id' => $bank,
                 'description' => $description,
                 'status' => 0
             ]);
@@ -171,7 +171,7 @@ class TransactionController extends Controller
             $data = $transaction;
             if($isSuccess){
                 //CREATE TRIPAY TRANSACTION
-                if($bank == 'QRISC'){
+                if($bank == 77){
                     $request = new Request([
                         'bank' => $bank,
                         'invoice' => $invoice_id,

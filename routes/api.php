@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\BankController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\CommentController;
 use App\Http\Controllers\FileController;
@@ -145,6 +146,15 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/journal-transaction/store','store');
         Route::put('/journal-transaction/update','update');
         Route::delete('/journal-transaction/delete','delete');
+    }));
+
+    Route::controller(BankController::class)->group((function() {
+        Route::get('/bank','get');
+        Route::get('/bank/getall','getAll');
+        Route::get('/bank/getbyid','getbyid');
+        Route::post('/bank','store');
+        Route::put('/bank/update','update');
+        Route::delete('/bank/{id}','destroy');
     }));
 
 });

@@ -26,4 +26,8 @@ class Transaction extends Model
     {
         return $this->hasMany(Comment::class,'invoice_id','invoice_id')->where('status',1);
     }
+
+    public function bank(){
+        return $this->hasOne(Bank::class,'id','bank_id')->where('status',1);
+    }
 }
