@@ -95,6 +95,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/transaction/store','store');
         Route::get('/transaction/get','get');
         Route::get('/transaction/getbyinvoice','getByInvoice');
+        Route::get('/transaction/getbyrange','getByRange');
         Route::get('/transaction/getactive','getActive'); //Belum dibayar
         Route::get('/transaction/getdone','getDone'); //Sudah dibayar
         Route::get('/transaction/getcancel','getCancel'); 
