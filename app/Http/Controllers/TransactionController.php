@@ -349,6 +349,28 @@ Request : ".$description."
         ]);
     }
 
+    public function getByRange(Request $req)
+    {
+        $isSuccess = true;
+        $msg = 'SUCCESS';
+        $trx = Transaction::whereBetween('created_at',[$req->startDate, $req->endDate.' 23:59:59'])->get();
+        
+        if($trx->count() < 1){
+            return response()->json([
+                'isSuccess' => false,
+                'msg' => 'Transaksi tidak ditemukan!',
+                'data' => 'TRX NOT FOUND'
+            ]);
+        }
+        $data = TransactionResource::collection($trx);
+
+        return response()->json([
+            'isSuccess' => $isSuccess,
+            'msg' => $msg,
+            'data' => $data,
+        ]);
+    }
+
     public function getActive()
     {
         $isSuccess = true;
