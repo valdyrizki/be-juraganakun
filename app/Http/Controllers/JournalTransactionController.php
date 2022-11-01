@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\JournalTransaction;
 use Exception;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
 
 class JournalTransactionController extends Controller
@@ -22,6 +23,33 @@ class JournalTransactionController extends Controller
         ]);
     }
     
+    // public function store(Request $request)
+    // {
+    //     $isSuccess = true;
+    //     $data = null;
+    //     $msg = "Berhasil membuat jurnal transaction ".$request->txid;
+
+    //     try{
+    //         $data = JournalTransaction::create([
+    //             'txid' => $request->txid,
+    //             'journal_account_id' => $request->journal_account_id,
+    //             'dbcr' => $request->dbcr,
+    //             'amount' => $request->amount,
+    //             'description' => $request->description,
+    //             'user_create' => Auth::id()
+    //         ]);
+    //     }catch(Exception $e){
+    //         $msg = $e->getMessage();
+    //         $isSuccess = false;
+    //     }
+        
+    //     return response()->json([
+    //         'data' => $data,
+    //         'isSuccess' => $isSuccess,
+    //         'msg' => $msg
+    //     ]);
+    // }
+
     public function store(Request $request)
     {
         $isSuccess = true;
@@ -29,14 +57,21 @@ class JournalTransactionController extends Controller
         $msg = "Berhasil membuat jurnal transaction ".$request->txid;
 
         try{
-            $data = JournalTransaction::create([
-                'txid' => $this->getTxId(),
-                'journal_account_id' => $request->journal_account_id,
-                'dbcr' => $request->dbcr,
+            $DB = JournalTransaction::create([
+                'txid' => $request->txid,
+                'journal_account_id' => $request->db_journal_account_id,
+                'dbcr' => 0,
                 'amount' => $request->amount,
                 'description' => $request->description,
-                'status' => $request->status,
-                'user_create' => $request->user_create
+                'user_create' => Auth::id()
+            ]);
+            $CR = JournalTransaction::create([
+                'txid' => $request->txid,
+                'journal_account_id' => $request->cr_journal_account_id,
+                'dbcr' => 1,
+                'amount' => $request->amount,
+                'description' => $request->description,
+                'user_create' => Auth::id()
             ]);
         }catch(Exception $e){
             $msg = $e->getMessage();
@@ -101,10 +136,10 @@ class JournalTransactionController extends Controller
 
     public function getTxId()
     {
-        $random =  Str::random(32);
+        $random =  Str::random(12);
         $count = JournalTransaction::where('txid',$random)->count();
         if ($count>0) {
-            $random =  Str::random(32);
+            $random =  Str::random(12);
         }
         return $random;
     }
