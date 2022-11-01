@@ -205,8 +205,8 @@ Request : ".$description."
 <b> DETAIL ORDER </b>
 ".$description_all;
 
-                $TelegramController = new TelegramController();
-                $stsTele = $TelegramController->createNotif($text);
+                // $TelegramController = new TelegramController();
+                // $stsTele = $TelegramController->createNotif($text);
 
                 DB::commit();
             }else{
@@ -475,13 +475,16 @@ Request : ".$description."
         $data->status = 1;
         $data->save();
         
-        $this->doJournalTrx($request->invoice_id); //Add Journal Transaction
-        DB::commit();
-
+        //Add Journal Transaction
+        $journalTrx = $this->doJournalTrx($request->invoice_id);
+        if($journalTrx)
+            DB::commit();
+        
         return response()->json([
             'isSuccess' => $isSuccess,
             'msg' => $msg,
             'data' => new TransactionResource($data),
+            'stsJournal' => $journalTrx,
         ]);
     }
 
@@ -545,19 +548,25 @@ Request : ".$description."
         $data->status = 9;
         $data->save();
 
-        $this->reversalJournalTrx($request->invoice_id); //Reversal Journal Transaction
-        DB::commit();
-
+        //Add Journal Transaction
+        $journalTrx = $this->reversalJournalTrx($request->invoice_id);
+        if($journalTrx)
+            DB::commit();
+        
         return response()->json([
             'isSuccess' => $isSuccess,
             'msg' => $msg,
             'data' => new TransactionResource($data),
+            'stsJournal' => $journalTrx,
         ]);
     }
 
     public function doJournalTrx($invoice_id){
+        $isSuccess = true;
+        $msg = 'Terjadi kesalahan!';
         $transaction = Transaction::find($invoice_id);
         if($transaction){
+            DB::beginTransaction();
             //Update Bank Balance
             try{
                 $bank = Bank::find($transaction->bank_id);
@@ -567,16 +576,50 @@ Request : ".$description."
                 }
             }catch(Exception $e){
                 report($e);
+                $isSuccess = false;
                 $msg = "Terjadi kesalahan saat update Bank Balance";
                 $transaction = $e->getMessage();
                 DB::rollback();
             }
+
+            //Post Journal Transaction
+            try{
+                $JournalTransactionController = new JournalTransactionController();
+                $txid = $JournalTransactionController->getTxId();
+                $journalTrx = $JournalTransactionController->store(new Request([
+                    'txid' => $txid ,
+                    'db_journal_account_id' => 111 ,
+                    'cr_journal_account_id' => 411 ,
+                    'amount' => $transaction->total_price,
+                    'description' => 'Transaction '.$transaction->invoice_id
+                ]));
+            }catch(Exception $e){
+                report($e);
+                $isSuccess = false;
+                $msg = "Terjadi kesalahan saat proses journal trx";
+                $transaction = $e->getMessage();
+                DB::rollback();
+            }
+
+            if($isSuccess){
+                DB::commit();
+                $msg = "SUCCESS";
+            }
         }
+
+        return ([
+            "isSuccess" => $isSuccess,
+            "msg" => $msg,
+            "journalTrx" => $journalTrx
+        ]);
     }
 
     public function reversalJournalTrx($invoice_id){
+        $isSuccess = true;
+        $msg = 'Terjadi kesalahan!';
         $transaction = Transaction::find($invoice_id);
         if($transaction){
+            DB::beginTransaction();
             //Update Bank Balance
             try{
                 $bank = Bank::find($transaction->bank_id);
@@ -587,10 +630,42 @@ Request : ".$description."
             }catch(Exception $e){
                 report($e);
                 $msg = "Terjadi kesalahan saat update Bank Balance";
+                $isSuccess = false;
                 $transaction = $e->getMessage();
                 DB::rollback();
             }
+
+            //Post Journal Transaction
+            try{
+                $JournalTransactionController = new JournalTransactionController();
+                $txid = $JournalTransactionController->getTxId();
+                $journalTrx = $JournalTransactionController->store(new Request([
+                    'txid' => $txid ,
+                    'db_journal_account_id' => 411 ,
+                    'cr_journal_account_id' => 111 ,
+                    'amount' => $transaction->total_price,
+                    'description' => 'Reversal Transaction '.$transaction->invoice_id
+                ]));
+
+            }catch(Exception $e){
+                report($e);
+                $isSuccess = false;
+                $msg = "Terjadi kesalahan saat proses journal trx";
+                $transaction = $e->getMessage();
+                DB::rollback();
+            }
+
+            if($isSuccess){
+                DB::commit();
+                $msg = "SUCCESS";
+            }
         }
+
+        return ([
+            "isSuccess" => $isSuccess,
+            "msg" => $msg,
+            "journalTrx" => $journalTrx
+        ]);
     }
 
 }

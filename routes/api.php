@@ -129,6 +129,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::controller(JournalAccountController::class)->group((function() {
         Route::get('/journal-account','get');
+        Route::get('/journal-account/getbycategory','getByCategory');
         Route::post('/journal-account/store','store');
         Route::put('/journal-account/update','update');
         Route::delete('/journal-account/delete','delete');

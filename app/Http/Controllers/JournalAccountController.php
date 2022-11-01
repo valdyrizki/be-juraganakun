@@ -20,6 +20,19 @@ class JournalAccountController extends Controller
             'data' => $data,
         ]);
     }
+
+    public function getByCategory(Request $req)
+    {
+        $isSuccess = true;
+        $msg = 'SUCCESS';
+        $data = JournalAccount::where('journal_category_id',$req->journal_category_id)->get();
+
+        return response()->json([
+            'isSuccess' => $isSuccess,
+            'msg' => $msg,
+            'data' => $data,
+        ]);
+    }
     
     public function store(Request $request)
     {
