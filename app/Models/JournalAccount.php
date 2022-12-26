@@ -11,4 +11,10 @@ class JournalAccount extends Model
     protected $guarded = [];
     public $incrementing = false;
     protected $primaryKey = 'id';
+
+    public function journal_transaction()
+    {
+        return $this->belongsTo(JournalTransaction::class);
+    }
+
 }

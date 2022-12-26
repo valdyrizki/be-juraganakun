@@ -9,4 +9,9 @@ class JournalTransaction extends Model
 {
     use HasFactory;
     protected $guarded = [];
+
+    public function journal_account()
+    {
+        return $this->hasOne(JournalAccount::class,'id','journal_account_id');
+    }
 }

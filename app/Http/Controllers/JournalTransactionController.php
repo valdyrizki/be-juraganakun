@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Resources\JournalTransactionResource;
 use App\Models\JournalTransaction;
 use Exception;
 use Illuminate\Http\Request;
@@ -142,5 +143,27 @@ class JournalTransactionController extends Controller
             $random =  Str::random(12);
         }
         return $random;
+    }
+
+    public function getByRange(Request $req)
+    {
+        $isSuccess = true;
+        $msg = 'SUCCESS';
+        $trx = JournalTransaction::whereBetween('created_at',[$req->startDate, $req->endDate.' 23:59:59'])->get();
+        
+        if($trx->count() < 1){
+            return response()->json([
+                'isSuccess' => false,
+                'msg' => 'Transaksi tidak ditemukan!',
+                'data' => 'TRX NOT FOUND'
+            ]);
+        }
+        $data = JournalTransactionResource::collection($trx);
+
+        return response()->json([
+            'isSuccess' => $isSuccess,
+            'msg' => $msg,
+            'data' => $data,
+        ]);
     }
 }

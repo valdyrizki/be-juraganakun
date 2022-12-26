@@ -145,6 +145,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::controller(JournalTransactionController::class)->group((function() {
         Route::get('/journal-transaction','get');
         Route::get('/journal-transaction/gettxid','getTxId');
+        Route::get('/journal-transaction/getbyrange','getByRange');
         Route::post('/journal-transaction/store','store');
         Route::put('/journal-transaction/update','update');
         Route::delete('/journal-transaction/delete','delete');
