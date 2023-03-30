@@ -371,6 +371,15 @@ Request : ".$description."
         ]);
     }
 
+    public function getByRecord($i)
+    {
+        return response()->json([
+            'isSuccess' => true,
+            'msg' => 'SUCCESS',
+            'data' => TransactionResource::collection(Transaction::orderBy('invoice_id', 'desc')->take($i)->get()),
+        ]);
+    }
+
     public function getActive()
     {
         $isSuccess = true;

@@ -96,6 +96,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/transaction/get','get');
         Route::get('/transaction/getbyinvoice','getByInvoice');
         Route::get('/transaction/getbyrange','getByRange');
+        Route::get('/transaction/getbyrecord/{i}','getByRecord');
         Route::get('/transaction/getactive','getActive'); //Belum dibayar
         Route::get('/transaction/getdone','getDone'); //Sudah dibayar
         Route::get('/transaction/getcancel','getCancel'); 
@@ -125,6 +126,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/file','get');
         Route::get('/file/getbyinvoice','getByInvoice');
         Route::get('/file/getbyproduct','getByProduct');
+        Route::get('/file/getpreviewfile','getPreviewFile');
     }));
 
     Route::controller(JournalAccountController::class)->group((function() {
@@ -166,6 +168,19 @@ Route::controller(AuthController::class)->group((function() {
     Route::post('/auth/register','register');
     Route::post('/auth/login','login');
 }));
+
+Route::get('/cleansing', function() {
+    Artisan::call('cache:clear');
+    Artisan::call('optimize');
+    Artisan::call('route:cache');
+    Artisan::call('route:clear');
+    Artisan::call('view:clear');
+    Artisan::call('config:cache');
+    return response()->json([
+        'msg' => "Cleansing completed",
+        'isSuccess' => true
+    ]);
+});
 
 //Clear cache via URL
 
