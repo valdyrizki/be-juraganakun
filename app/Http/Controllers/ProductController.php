@@ -510,11 +510,17 @@ class ProductController extends Controller
                 'data' => 'TRANSACTION NOT FOUND'
             ]);
         }
-        
+
         $header = [
             'Content-Type' => 'application/*',
         ];
-        $response = response()->download('file/transaction/'.$invoice_id.'/'.$invoice_id.'.zip', $invoice_id.'zip', $header);
+
+        $response = null;
+        if($file->count() > 1){ //Jika lebih dari 1 akun, download zip file by invoice
+            $response = response()->download('file/transaction/'.$invoice_id.'/'.$invoice_id.'.zip', $invoice_id.'zip', $header);
+        }else{ //jika 1 akun, download 1 file tsb
+            $response = response()->download($file[0]->path, $file[0]->filename, $header);
+        }
         if (ob_get_length()) ob_end_clean();
         return $response;
     }
