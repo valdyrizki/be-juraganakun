@@ -5,23 +5,24 @@ namespace App\Http\Controllers;
 use App\Models\Transaction;
 use App\Models\Tripay;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Response;
 
 class TripayController extends Controller
 {
     public function createTrancaction(Request $req)
     {
         // dd($req->order_items);
-        if($req->bank == 77){
+        if ($req->bank == 77) {
             $apiKey       = env("TRIPAY_API_KEY");
             $privateKey   = env("TRIPAY_PRIVATE_KEY");
             $merchantCode = env("TRIPAY_MERCHANT_CODE");
             $merchantRef  = $req->invoice;
             $amount       = $req->total_price;
-            $signature = hash_hmac('sha256', $merchantCode.$merchantRef.$amount, $privateKey);
+            $signature = hash_hmac('sha256', $merchantCode . $merchantRef . $amount, $privateKey);
             $redirect = $req->redirect;
 
             $data = [
-                'method'         => $req->bank,
+                'method'         => 'QRIS',
                 'merchant_ref'   => $merchantRef,
                 'amount'         => $amount,
                 'customer_name'  => $req->name,
@@ -39,7 +40,7 @@ class TripayController extends Controller
                 CURLOPT_URL            => env('TRIPAY_CREATE_TRX_URL'),
                 CURLOPT_RETURNTRANSFER => true,
                 CURLOPT_HEADER         => false,
-                CURLOPT_HTTPHEADER     => ['Authorization: Bearer '.$apiKey],
+                CURLOPT_HTTPHEADER     => ['Authorization: Bearer ' . $apiKey],
                 CURLOPT_FAILONERROR    => false,
                 CURLOPT_POST           => true,
                 CURLOPT_POSTFIELDS     => http_build_query($data),
@@ -55,7 +56,7 @@ class TripayController extends Controller
             //Save log to tripay table
             Tripay::create([
                 'invoice_id' => $merchantRef,
-                'result' => $stsTripay ,
+                'result' => $stsTripay,
             ]);
 
             return json_decode($stsTripay);
@@ -68,8 +69,21 @@ class TripayController extends Controller
         $json = $request->getContent();
         $signature = hash_hmac('sha256', $json, env("TRIPAY_PRIVATE_KEY"));
 
-        if ($signature !== (string) $callbackSignature) {return 'Invalid signature';}
-        if ('payment_status' !== (string) $request->server('HTTP_X_CALLBACK_EVENT')) {return 'Invalid callback event, no action was taken';}
+        if ($signature !== (string) $callbackSignature) {
+            return Response::json([
+                'success' => false,
+                'message' => 'Invalid signature',
+                'signature' => $signature,
+                'json' => $json
+            ]);
+        }
+
+        if ('payment_status' !== (string) $request->server('HTTP_X_CALLBACK_EVENT')) {
+            return Response::json([
+                'success' => false,
+                'message' => 'Unrecognized callback event, no action was taken',
+            ]);
+        }
 
         $data = json_decode($json);
         $uniqueRef = $data->merchant_ref;
@@ -77,33 +91,35 @@ class TripayController extends Controller
         $transaction = Transaction::where('invoice_id', $uniqueRef)->first();
         $transactionController = new TransactionController;
         $req = new Request();
+        $req->invoice_id = $transaction->invoice_id;
 
-        if (! $transaction) {return 'No invoice found for this unique ref: ' . $uniqueRef;}
+        if (!$transaction) {
+            return 'No invoice found for this unique ref: ' . $uniqueRef;
+        }
 
         switch ($status) {
             case 'UNPAID':
                 $transaction->update(['status' => 0]);
+                $transactionController->setPending($req);
                 return response()->json(['success' => true]);
 
             case 'PAID':
                 $transaction->update(['status' => 1]);
-                $req->id = $transaction->id;
-                $result = $transactionController->setDone($req);
+                $transactionController->setConfirm($req);
                 return response()->json(['success' => true]);
 
             case 'EXPIRED':
                 $transaction->update(['status' => 3]);
+                $transactionController->setExpired($req);
                 return response()->json(['success' => true]);
 
             case 'FAILED':
                 $transaction->update(['status' => 9]);
+                $transactionController->setCancel($req);
                 return response()->json(['success' => true]);
 
             default:
                 return response()->json(['error' => 'Unrecognized payment status']);
         }
-
     }
-
-
 }

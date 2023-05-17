@@ -68,28 +68,29 @@ class TransactionController extends Controller
         $unique_number = $this->getUniqueNumber();
 
         $total_price = $this->getTotalPrice($req->products);
-        $user = array(
-            "id" => 0,
-            'name' => $client_name,
-            'email' => $email,
-            'user_detail' => ["phone" => $phone_number ]
-        );
-        
-        if ($bank != 77) {
-            $user = Auth::user();
+
+        //Validasi authenticated
+        if (!Auth::check()) {
+            return response()->json([
+                'isSuccess' => false,
+                'msg' => 'These credentials do not match our records.',
+                'data' => 'ERROR'
+            ], 401);
         }
-        
-        if($total_price <= 0){
+        $user = Auth::user();
+
+        //Validasi jika total transaksi = 0
+        if ($total_price <= 0) {
             return response()->json([
                 'isSuccess' => false,
                 'msg' => 'ID Product / Stock tidak valid',
                 'data' => 'ERROR'
-            ]);
+            ], 400);
         }
-        
+
         DB::beginTransaction();
 
-        try{
+        try {
             $transaction = Transaction::create([
                 'invoice_id' => $invoice_id,
                 'user_id' => $user->id,
@@ -107,26 +108,26 @@ class TransactionController extends Controller
 
             $products = $req->products;
             $description_all = "";
-            
-            $zipPath = "file/transaction/".$invoice_id."/".$invoice_id.".zip";
+
+            $zipPath = "file/transaction/" . $invoice_id . "/" . $invoice_id . ".zip";
             $zip = new ZipArchive;
-            $zip->open('file/'.$invoice_id.'.zip', ZipArchive::CREATE | ZipArchive::OVERWRITE);
+            $zip->open('file/' . $invoice_id . '.zip', ZipArchive::CREATE | ZipArchive::OVERWRITE);
 
             foreach ($products as $product) {
                 $product_id =  $product['product_id'];
-                $productDB = Product::where("product_id",$product_id)->first();
+                $productDB = Product::where("product_id", $product_id)->first();
                 $price =  $productDB->price;
                 $qty =  $product['qty'];
-                $description_trx =  "Buying ".$productDB->product_name." ".$qty." Pcs";
-                $description_all .= "- ".$description_trx."\n";
+                $description_trx =  "Buying " . $productDB->product_name . " " . $qty . " Pcs";
+                $description_all .= "- " . $description_trx . "\n";
 
-                if($productDB->stock < $qty){
+                if ($productDB->stock < $qty) {
                     return response()->json([
-                        'msg' => "Stok untuk produk ".$product_id." - ".$productDB->product_name." tidak cukup",
+                        'msg' => "Stok untuk produk " . $product_id . " - " . $productDB->product_name . " tidak cukup",
                         'isSuccess' => false
-                    ]);
+                    ], 400);
                 }
-                
+
                 TransactionDetail::create([
                     'product_id' => $productDB->product_id,
                     'invoice_id' => $invoice_id,
@@ -137,15 +138,15 @@ class TransactionController extends Controller
 
                 $productDB->stock = $productDB->stock - $qty;
                 $productDB->save();
-                $product_files = ProductFile::whereNull('invoice_id')->where("product_id",$productDB->product_id)->take($qty)->get();
+                $product_files = ProductFile::whereNull('invoice_id')->where("product_id", $productDB->product_id)->take($qty)->get();
 
                 //Create ZIP file and Update and Move Product file to folder transaction
-                
+
                 foreach ($product_files as $product_file) {
-                    $newPath = 'file/transaction/'.$invoice_id.'/'.$product_file->product_id.'-'.$product_file->id.'-'.$product_file->filename;
-                    Storage::move($product_file->path,$newPath);
-                    $zip->addFile($newPath,$product_file->filename);
-                    
+                    $newPath = 'file/transaction/' . $invoice_id . '/' . $product_file->product_id . '-' . $product_file->id . '-' . $product_file->filename;
+                    Storage::move($product_file->path, $newPath);
+                    $zip->addFile($newPath, $product_file->filename);
+
                     $product_file->status = 1;
                     $product_file->description = "SOLD";
                     $product_file->path = $newPath;
@@ -156,23 +157,23 @@ class TransactionController extends Controller
                 //set order_items for tripay
                 $item = array(
                     'sku' => $productDB->product_id,
-                    'name' => $productDB->product_name, 
-                    'price' => $productDB->price ,
+                    'name' => $productDB->product_name,
+                    'price' => $productDB->price,
                     'quantity' => $qty,
                     'subtotal' => ((int)$productDB->price * (int)$qty),
-                    'product_url' => env('FE_APP_URL').'/product/'.$productDB->product_id,
+                    'product_url' => env('STORE_APP_URL'),
                     'image_url' => null,
                 );
                 array_push($order_items, $item);
             }
             $zip->close();
-            Storage::move('file/'.$invoice_id.'.zip',$zipPath);
+            Storage::move('file/' . $invoice_id . '.zip', $zipPath);
 
-            
+
             $data = $transaction;
-            if($isSuccess){
+            if ($isSuccess) {
                 //CREATE TRIPAY TRANSACTION
-                if($bank == 77){
+                if ($bank == 77) {
                     $request = new Request([
                         'bank' => $bank,
                         'invoice' => $invoice_id,
@@ -186,44 +187,45 @@ class TransactionController extends Controller
                     $TripayController = new TripayController();
                     $stsTripay = $TripayController->createTrancaction($request);
                     $redirect = $stsTripay->data->checkout_url;
-                }else{
-                    $redirect = env('FE_APP_URL').'/invoice/detail/'.$invoice_id;
+                } else {
+                    $redirect = env('FE_APP_URL') . '/invoice/detail/' . $invoice_id;
                 }
 
-// CREATE TELEGRAM NOTIFICATION
-$text = 
-"<b>=== ORDER JURAGAN AKUN ===</b>
-Email : ".$user->email."
-Nama : ".$user->name."
-No Telepon : ".$user->user_detail->phone."
-Total Price : ".$total_price."
-Unique Number : ".$unique_number."
-Bank : ".$bank."
-Kupon : ".$coupon."
-Request : ".$description."
+                // CREATE TELEGRAM NOTIFICATION
+                $text =
+                    "<b>=== ORDER JURAGAN AKUN ===</b>
+Email : " . $user->email . "
+Nama : " . $user->name . "
+No Telepon : " . $user->user_detail->phone . "
+Total Price : " . $total_price . "
+Unique Number : " . $unique_number . "
+Bank : " . $bank . "
+Kupon : " . $coupon . "
+Request : " . $description . "
 
 <b> DETAIL ORDER </b>
-".$description_all;
+" . $description_all;
 
                 // $TelegramController = new TelegramController();
                 // $stsTele = $TelegramController->createNotif($text);
 
                 DB::commit();
-            }else{
+            } else {
                 DB::rollback();
                 return response()->json([
-                    'msg' => "Transaksi gagal, hubungi tim support via WA : ".env('PHONE_NUMBER'),
+                    'msg' => "Transaksi gagal, hubungi tim support via WA : " . env('PHONE_NUMBER'),
                     'isSuccess' => false
-                ]);
+                ], 400);
             }
-        }catch(Exception $e){
+        } catch (Exception $e) {
             report($e);
-            $msg = "Terjadi kesalahan teknis, hubungi admin ";
-            $data = $e->getMessage();
+            return response()->json([
+                'msg' => "Terjadi kesalahan teknis, hubungi admin via WA : " . env('PHONE_NUMBER'),
+                'isSuccess' => false,
+                'data' => $e->getMessage()
+            ], 400);
             DB::rollback();
         }
-
-        
 
         return response()->json([
             'isSuccess' => $isSuccess,
@@ -286,27 +288,26 @@ Request : ".$description."
         $lastTrx = Transaction::whereDate('created_at', Carbon::now())->orderBy('invoice_id', 'DESC')->pluck('invoice_id')->first();
         $formatInv = "INV";
         $dateNow = date('Ymd');
-        $invoice = $formatInv.$dateNow."0001";
+        $invoice = $formatInv . $dateNow . "0001";
         //INV+Ymd length = 11
 
-        try{
-            if(isset($lastTrx)){
-                $lastInvoice = substr($lastTrx,11); //0000 without INV+Ymd
-                $intInvoice = $lastInvoice+1; // 1
+        try {
+            if (isset($lastTrx)) {
+                $lastInvoice = substr($lastTrx, 11); //0000 without INV+Ymd
+                $intInvoice = $lastInvoice + 1; // 1
                 $lenZero = 4 - strlen($intInvoice); // 3
-                $invoice =  $formatInv.$dateNow.substr($lastInvoice,0,$lenZero).$intInvoice; //INV000000000001
+                $invoice =  $formatInv . $dateNow . substr($lastInvoice, 0, $lenZero) . $intInvoice; //INV000000000001
             }
-        }catch(Exception $e){
-            
+        } catch (Exception $e) {
         }
 
         return $invoice;
     }
-    
+
     public function getUniqueNumber()
     {
         $digits = 3;
-        return rand(pow(10, $digits-1), pow(10, $digits)-1);
+        return rand(pow(10, $digits - 1), pow(10, $digits) - 1);
     }
 
     public function getTotalPrice($products)
@@ -316,17 +317,17 @@ Request : ".$description."
             $product_id = $product['product_id'];
             $qty = (int)$product['qty'];
             $prod = Product::find($product_id);
-            $total_price = $total_price + ((int)$prod->price * $qty) ;
+            $total_price = $total_price + ((int)$prod->price * $qty);
         }
 
         return $total_price;
     }
-    
+
     public function get()
     {
         $isSuccess = true;
         $msg = 'SUCCESS';
-        $data = TransactionResource::collection(Transaction::orderBy('invoice_id','DESC')->get());
+        $data = TransactionResource::collection(Transaction::orderBy('invoice_id', 'DESC')->get());
 
         return response()->json([
             'isSuccess' => $isSuccess,
@@ -334,7 +335,20 @@ Request : ".$description."
             'data' => $data,
         ]);
     }
-    
+
+    public function getMy()
+    {
+        $isSuccess = true;
+        $msg = 'SUCCESS';
+        $data = TransactionResource::collection(Transaction::where('user_id', Auth::user()->id)->orderBy('invoice_id', 'DESC')->get());
+
+        return response()->json([
+            'isSuccess' => $isSuccess,
+            'msg' => $msg,
+            'data' => $data,
+        ]);
+    }
+
     public function getByInvoice(Request $req)
     {
         $isSuccess = true;
@@ -353,14 +367,14 @@ Request : ".$description."
     {
         $isSuccess = true;
         $msg = 'SUCCESS';
-        $trx = Transaction::whereBetween('created_at',[$req->startDate, $req->endDate.' 23:59:59'])->get();
-        
-        if($trx->count() < 1){
+        $trx = Transaction::whereBetween('created_at', [$req->startDate, $req->endDate . ' 23:59:59'])->get();
+
+        if ($trx->count() < 1) {
             return response()->json([
                 'isSuccess' => false,
                 'msg' => 'Transaksi tidak ditemukan!',
                 'data' => 'TRX NOT FOUND'
-            ]);
+            ], 400);
         }
         $data = TransactionResource::collection($trx);
 
@@ -384,7 +398,7 @@ Request : ".$description."
     {
         $isSuccess = true;
         $msg = 'SUCCESS';
-        $data = new TransactionCollection(TransactionResource::collection(Transaction::where('status',0)->get()));
+        $data = new TransactionCollection(TransactionResource::collection(Transaction::where('status', 0)->get()));
 
         return response()->json([
             'isSuccess' => $isSuccess,
@@ -393,11 +407,11 @@ Request : ".$description."
         ]);
     }
 
-    public function getDone()
+    public function getDone(Request $req)
     {
         $isSuccess = true;
         $msg = 'SUCCESS';
-        $data = new TransactionCollection(TransactionResource::collection(Transaction::where('status',1)->get()));
+        $data = new TransactionCollection(TransactionResource::collection(Transaction::find($req)));
 
         return response()->json([
             'isSuccess' => $isSuccess,
@@ -410,7 +424,7 @@ Request : ".$description."
     {
         $isSuccess = true;
         $msg = 'SUCCESS';
-        $data = new TransactionCollection(TransactionResource::collection(Transaction::where('status',2)->get()));
+        $data = new TransactionCollection(TransactionResource::collection(Transaction::where('status', 2)->get()));
 
         return response()->json([
             'isSuccess' => $isSuccess,
@@ -423,7 +437,7 @@ Request : ".$description."
     {
         $isSuccess = true;
         $msg = 'SUCCESS';
-        $data = new TransactionCollection(TransactionResource::collection(Transaction::where('status',3)->get()));
+        $data = new TransactionCollection(TransactionResource::collection(Transaction::where('status', 3)->get()));
 
         return response()->json([
             'isSuccess' => $isSuccess,
@@ -436,7 +450,7 @@ Request : ".$description."
     {
         $isSuccess = true;
         $msg = 'SUCCESS';
-        $data = new TransactionCollection(TransactionResource::collection(Transaction::where('status',9)->get()));
+        $data = new TransactionCollection(TransactionResource::collection(Transaction::where('status', 9)->get()));
 
         return response()->json([
             'isSuccess' => $isSuccess,
@@ -450,12 +464,12 @@ Request : ".$description."
         $isSuccess = true;
         $msg = 'Transaksi berhasil dipending';
         $data = Transaction::find($request->invoice_id);
-        if(! $data){
+        if (!$data) {
             return response()->json([
                 'isSuccess' => false,
                 'msg' => 'Transaksi tidak ditemukan!',
-                'data' => 'ID '.$request->invoice_id.' NOT FOUND'
-            ]);
+                'data' => 'ID ' . $request->invoice_id . ' NOT FOUND'
+            ], 400);
         }
         $data->status = 0;
         $data->save();
@@ -472,27 +486,27 @@ Request : ".$description."
         $isSuccess = true;
         $msg = 'Transaksi berhasil dikonfirmasi';
         $data = Transaction::find($request->invoice_id);
-        if(! $data){
+        if (!$data) {
             return response()->json([
                 'isSuccess' => false,
                 'msg' => 'Transaksi tidak ditemukan!',
-                'data' => 'ID '.$request->invoice_id.' NOT FOUND'
-            ]);
+                'data' => 'ID ' . $request->invoice_id . ' NOT FOUND'
+            ], 400);
         }
-        
+
         DB::beginTransaction();
         $data->status = 1;
         $data->save();
-        
+
         //Add Journal Transaction
         $journalTrx = $this->doJournalTrx($request->invoice_id);
-        if($journalTrx)
+        if ($journalTrx)
             DB::commit();
-        
+
         return response()->json([
             'isSuccess' => $isSuccess,
             'msg' => $msg,
-            'data' => new TransactionResource($data),
+            'data' => $data,
             'stsJournal' => $journalTrx,
         ]);
     }
@@ -502,12 +516,12 @@ Request : ".$description."
         $isSuccess = true;
         $msg = 'Transaksi berhasil direfund';
         $data = Transaction::find($request->invoice_id);
-        if(! $data){
+        if (!$data) {
             return response()->json([
                 'isSuccess' => false,
                 'msg' => 'Transaksi tidak ditemukan!',
-                'data' => 'ID '.$request->invoice_id.' NOT FOUND'
-            ]);
+                'data' => 'ID ' . $request->invoice_id . ' NOT FOUND'
+            ], 400);
         }
         $data->status = 2;
         $data->save();
@@ -515,7 +529,7 @@ Request : ".$description."
         return response()->json([
             'isSuccess' => $isSuccess,
             'msg' => $msg,
-            'data' => new TransactionResource($data),
+            'data' => $data,
         ]);
     }
 
@@ -524,12 +538,12 @@ Request : ".$description."
         $isSuccess = true;
         $msg = 'Transaksi berhasil diubah menjadi kadaluarsa';
         $data = Transaction::find($request->invoice_id);
-        if(! $data){
+        if (!$data) {
             return response()->json([
                 'isSuccess' => false,
                 'msg' => 'Transaksi tidak ditemukan!',
-                'data' => 'ID '.$request->invoice_id.' NOT FOUND'
-            ]);
+                'data' => 'ID ' . $request->invoice_id . ' NOT FOUND'
+            ], 400);
         }
         $data->status = 3;
         $data->save();
@@ -537,7 +551,7 @@ Request : ".$description."
         return response()->json([
             'isSuccess' => $isSuccess,
             'msg' => $msg,
-            'data' => new TransactionResource($data),
+            'data' => $data,
         ]);
     }
 
@@ -546,12 +560,12 @@ Request : ".$description."
         $isSuccess = true;
         $msg = 'Transaksi berhasil dicancel';
         $data = Transaction::find($request->invoice_id);
-        if(! $data){
+        if (!$data) {
             return response()->json([
                 'isSuccess' => false,
                 'msg' => 'Transaksi tidak ditemukan!',
-                'data' => 'ID '.$request->invoice_id.' NOT FOUND'
-            ]);
+                'data' => 'ID ' . $request->invoice_id . ' NOT FOUND'
+            ], 400);
         }
         DB::beginTransaction();
         $data->status = 9;
@@ -559,31 +573,32 @@ Request : ".$description."
 
         //Add Journal Transaction
         $journalTrx = $this->reversalJournalTrx($request->invoice_id);
-        if($journalTrx)
+        if ($journalTrx)
             DB::commit();
-        
+
         return response()->json([
             'isSuccess' => $isSuccess,
             'msg' => $msg,
-            'data' => new TransactionResource($data),
+            'data' => $data,
             'stsJournal' => $journalTrx,
         ]);
     }
 
-    public function doJournalTrx($invoice_id){
+    public function doJournalTrx($invoice_id)
+    {
         $isSuccess = true;
         $msg = 'Terjadi kesalahan!';
         $transaction = Transaction::find($invoice_id);
-        if($transaction){
+        if ($transaction) {
             DB::beginTransaction();
             //Update Bank Balance
-            try{
+            try {
                 $bank = Bank::find($transaction->bank_id);
-                if($bank){
+                if ($bank) {
                     $bank->balance = $bank->balance + $transaction->total_price;
                     $bank->save();
                 }
-            }catch(Exception $e){
+            } catch (Exception $e) {
                 report($e);
                 $isSuccess = false;
                 $msg = "Terjadi kesalahan saat update Bank Balance";
@@ -592,17 +607,17 @@ Request : ".$description."
             }
 
             //Post Journal Transaction
-            try{
+            try {
                 $JournalTransactionController = new JournalTransactionController();
                 $txid = $JournalTransactionController->getTxId();
                 $journalTrx = $JournalTransactionController->store(new Request([
-                    'txid' => $txid ,
-                    'db_journal_account_id' => 111 ,
-                    'cr_journal_account_id' => 411 ,
+                    'txid' => $txid,
+                    'db_journal_account_id' => 111,
+                    'cr_journal_account_id' => 411,
                     'amount' => $transaction->total_price,
-                    'description' => 'Transaction '.$transaction->invoice_id
+                    'description' => 'Transaction ' . $transaction->invoice_id
                 ]));
-            }catch(Exception $e){
+            } catch (Exception $e) {
                 report($e);
                 $isSuccess = false;
                 $msg = "Terjadi kesalahan saat proses journal trx";
@@ -610,7 +625,7 @@ Request : ".$description."
                 DB::rollback();
             }
 
-            if($isSuccess){
+            if ($isSuccess) {
                 DB::commit();
                 $msg = "SUCCESS";
             }
@@ -623,20 +638,21 @@ Request : ".$description."
         ]);
     }
 
-    public function reversalJournalTrx($invoice_id){
+    public function reversalJournalTrx($invoice_id)
+    {
         $isSuccess = true;
         $msg = 'Terjadi kesalahan!';
         $transaction = Transaction::find($invoice_id);
-        if($transaction){
+        if ($transaction) {
             DB::beginTransaction();
             //Update Bank Balance
-            try{
+            try {
                 $bank = Bank::find($transaction->bank_id);
-                if($bank){
+                if ($bank) {
                     $bank->balance = $bank->balance - $transaction->total_price;
                     $bank->save();
                 }
-            }catch(Exception $e){
+            } catch (Exception $e) {
                 report($e);
                 $msg = "Terjadi kesalahan saat update Bank Balance";
                 $isSuccess = false;
@@ -645,18 +661,17 @@ Request : ".$description."
             }
 
             //Post Journal Transaction
-            try{
+            try {
                 $JournalTransactionController = new JournalTransactionController();
                 $txid = $JournalTransactionController->getTxId();
                 $journalTrx = $JournalTransactionController->store(new Request([
-                    'txid' => $txid ,
-                    'db_journal_account_id' => 411 ,
-                    'cr_journal_account_id' => 111 ,
+                    'txid' => $txid,
+                    'db_journal_account_id' => 411,
+                    'cr_journal_account_id' => 111,
                     'amount' => $transaction->total_price,
-                    'description' => 'Reversal Transaction '.$transaction->invoice_id
+                    'description' => 'Reversal Transaction ' . $transaction->invoice_id
                 ]));
-
-            }catch(Exception $e){
+            } catch (Exception $e) {
                 report($e);
                 $isSuccess = false;
                 $msg = "Terjadi kesalahan saat proses journal trx";
@@ -664,7 +679,7 @@ Request : ".$description."
                 DB::rollback();
             }
 
-            if($isSuccess){
+            if ($isSuccess) {
                 DB::commit();
                 $msg = "SUCCESS";
             }
@@ -676,5 +691,4 @@ Request : ".$description."
             "journalTrx" => $journalTrx
         ]);
     }
-
 }

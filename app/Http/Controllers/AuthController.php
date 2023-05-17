@@ -2,64 +2,100 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Resources\UserResource;
 use App\Models\User;
 use App\Models\UserDetail;
 use Exception;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 
 class AuthController extends Controller
 {
     public function register(Request $request)
     {
-        $isError = false;
+        $isSuccess = true;
         $data = null;
-        $msg = null;
+        $msg = 'Register Failed!';
+        $stscode = 201;
 
-        try{
+        DB::beginTransaction();
+
+        try {
             $user = User::create([
-                'name' => $request->name,
+                'name' => $request->username,
                 'email' => $request->email,
                 'password' => bcrypt($request->password),
-                'level' => 1,
+                'level' => '00',
             ]);
 
             UserDetail::create([
-                'user_id' => $user->id
+                'user_id' => $user->id,
+                'phone' => $request->phone,
+                'first_name' => $request->firstname,
+                'last_name' => $request->lastname,
             ]);
 
             $data = $user;
-            $msg = "Berhasil membuat user ".$request->email;
-        }catch(Exception $e){
-            
+            $msg = "Berhasil membuat user " . $request->email;
+        } catch (Exception $e) {
+
+            DB::rollBack();
             $data = $e->getMessage();
-            $isError = true;
+            $isSuccess = false;
+            $stscode = 400;
         }
-        
+
+        DB::commit();
+
         return response()->json([
             'data' => $data,
-            'isError' => $isError,
+            'isSuccess' => $isSuccess,
             'msg' => $msg
-        ]);
+        ], $stscode);
     }
 
     public function login(Request $request)
     {
         $isSuccess = true;
-        $msg = null;
+        $msg = "Login Successfully";
 
-        $user= User::where('email', $request->email)->first();
+        $user = User::where('email', $request->email)->first();
 
         if (!$user || !Hash::check($request->password, $user->password)) {
             return response([
                 'msg' => ['These credentials do not match our records.']
-            ]);
+            ], 401);
         }
 
-        $token = $user->createToken('juraganakun-token')->plainTextToken;
+        $token = $user->createToken('client-juraganakun')->plainTextToken;
 
         return response()->json([
-            'data' => $user,
+            'data' => new UserResource($user),
+            'isSuccess' => $isSuccess,
+            'msg' => $msg,
+            'token' => $token,
+        ]);
+    }
+
+    public function checkPassword(Request $request)
+    {
+        $isSuccess = true;
+        $msg = "Verification Success";
+
+        $user = User::find(Auth::id());
+
+        if (!$user || !Hash::check($request->password, $user->password)) {
+            return response([
+                'msg' => ['These credentials do not match our records.']
+            ], 401);
+        }
+
+        $token = $user->createToken('client-juraganakun')->plainTextToken;
+
+        return response()->json([
+            'data' => new UserResource($user),
             'isSuccess' => $isSuccess,
             'msg' => $msg,
             'token' => $token,
