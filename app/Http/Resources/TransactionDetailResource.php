@@ -24,6 +24,7 @@ class TransactionDetailResource extends JsonResource
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
             'product' => $this->product,
+            'path_img_product' => $this->product->productImage->path,
         ];
     }
 }

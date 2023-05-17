@@ -49,7 +49,7 @@ class CommentController extends Controller
 
         DB::beginTransaction();
         $invoice_id = $request->invoice_id;
-        
+
         $comment = Comment::create([
             'invoice_id' => $invoice_id,
             'comment' => $request->comment,
@@ -60,30 +60,30 @@ class CommentController extends Controller
             $maxFileId = CommentFile::max('id');
             $files = $request->file('files');
             $totalFile = count($files);
-            if($totalFile>0){
+            if ($totalFile > 0) {
                 $i = 1;
                 foreach ($files as $file) {
                     $filename = $file->getClientOriginalName();
-                    $fileId = $maxFileId+$i;
-    
-                    try{
+                    $fileId = $maxFileId + $i;
+
+                    try {
                         // Save to disk
                         Storage::putFile('file', $file);
                         // Rename the Name
-                        $path = 'file/transaction/'.$invoice_id.'/'.$fileId.'-'.$file->getClientOriginalName();
+                        $path = 'file/transaction/' . $invoice_id . '/' . $fileId . '-' . $file->getClientOriginalName();
                         $path = str_replace(' ', '_', $path);
                         $path = str_replace('+', '-', $path);
-                        Storage::move('file/'.$file->hashName(), $path);
-    
+                        Storage::move('file/' . $file->hashName(), $path);
+
                         $file = CommentFile::create([
                             'comment_id' => $comment->id,
                             'filename' => $filename,
                             'path' => $path,
-                            'description' => 'Upload '.$i.'/'.$totalFile .'File',
+                            'description' => 'Upload ' . $i . '/' . $totalFile . 'File',
                             'code' => Str::orderedUuid(),
                             'user_create' => Auth::id()
                         ]);
-                    }catch(Exception $e){
+                    } catch (Exception $e) {
                         report($e);
                         $out = new \Symfony\Component\Console\Output\ConsoleOutput();
                         $out->writeln($e);
@@ -92,15 +92,15 @@ class CommentController extends Controller
                     }
                     $i++;
                 }
-            }else{
+            } else {
                 return response()->json([
                     'isSuccess' => false,
                     'msg' => 'File Kosong!',
                     'data' => $request->all()
-                ]);
+                ], 400);
             }
         }
-        
+
         DB::commit();
 
         return response()->json([
@@ -108,7 +108,6 @@ class CommentController extends Controller
             'msg' => $msg,
             'data' => $data,
         ]);
-    
     }
 
     /**
@@ -156,19 +155,19 @@ class CommentController extends Controller
         //
     }
 
-    
+
 
     public function getByInvoice(Request $req)
     {
         $isSuccess = true;
         $msg = 'SUCCESS';
-        $data = new CommentCollection(CommentResource::collection(Comment::where('invoice_id',$req->invoice_id)->where('status',1)->get()));
-        if(! $data){
+        $data = new CommentCollection(CommentResource::collection(Comment::where('invoice_id', $req->invoice_id)->where('status', 1)->get()));
+        if (!$data) {
             return response()->json([
                 'isSuccess' => false,
                 'msg' => 'Comment tidak ditemukan!',
-                'data' => 'ID '.$req->product_id.' NOT FOUND'
-            ]);
+                'data' => 'ID ' . $req->product_id . ' NOT FOUND'
+            ], 400);
         }
 
         return response()->json([
@@ -183,12 +182,12 @@ class CommentController extends Controller
         $isSuccess = true;
         $msg = 'SUCCESS';
         $data = CommentFile::where($req->invoice_id)->get();
-        if(! $data){
+        if (!$data) {
             return response()->json([
                 'isSuccess' => false,
                 'msg' => 'Comment tidak ditemukan!',
-                'data' => 'ID '.$req->product_id.' NOT FOUND'
-            ]);
+                'data' => 'ID ' . $req->product_id . ' NOT FOUND'
+            ], 400);
         }
 
         return response()->json([
@@ -200,15 +199,15 @@ class CommentController extends Controller
 
     public function downloadByCode(Request $request)
     {
-        $file = CommentFile::where('code',$request->code)->first();
-        if(! $file){
+        $file = CommentFile::where('code', $request->code)->first();
+        if (!$file) {
             return response()->json([
                 'isSuccess' => false,
                 'msg' => 'File tidak ditemukan!',
                 'data' => 'FILE NOT FOUND'
-            ]);
+            ], 400);
         }
-        
+
         $header = [
             'Content-Type' => 'application/*',
         ];
@@ -222,16 +221,16 @@ class CommentController extends Controller
         $isSuccess = true;
         $msg = 'Produk berhasil dihapus';
         $data = Comment::find($request->id);
-        if(! $data){
+        if (!$data) {
             return response()->json([
                 'isSuccess' => false,
                 'msg' => 'Komentar tidak ditemukan!',
                 'data' => 'COMMENT NOT FOUND'
-            ]);
+            ], 400);
         }
         $data->status = 0;
         $data->save();
-        
+
         return response()->json([
             'isSuccess' => $isSuccess,
             'msg' => $msg,

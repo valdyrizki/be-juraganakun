@@ -20,24 +20,24 @@ class JournalCategoryController extends Controller
             'data' => $data,
         ]);
     }
-    
+
     public function store(Request $request)
     {
         $isSuccess = true;
         $data = null;
-        $msg = "Berhasil membuat kategori jurnal ".$request->name;
+        $msg = "Berhasil membuat kategori jurnal " . $request->name;
 
-        try{
+        try {
             $data = JournalCategory::create([
                 'name' => $request->name,
                 'dbcr' => $request->dbcr,
                 'status' => $request->status
             ]);
-        }catch(Exception $e){
+        } catch (Exception $e) {
             $msg = $e->getMessage();
             $isSuccess = false;
         }
-        
+
         return response()->json([
             'data' => $data,
             'isSuccess' => $isSuccess,
@@ -51,17 +51,17 @@ class JournalCategoryController extends Controller
         $msg = 'Kategori berhasil diupdate';
 
         $data = JournalCategory::find($request->id);
-        if(! $data){
+        if (!$data) {
             return response()->json([
                 'isSuccess' => false,
                 'msg' => 'Kategori tidak ditemukan!',
-                'data' => 'ID '.$request->id.' NOT FOUND'
-            ]);
+                'data' => 'ID ' . $request->id . ' NOT FOUND'
+            ], 400);
         }
         $data->name = $request->name != null ? $request->name : $data->name;
         $data->dbcr = $request->dbcr != null ? $request->dbcr : $data->dbcr;
         $data->status = $request->status != null ? $request->status : $data->status;
-        $data->save(); 
+        $data->save();
 
         return response()->json([
             'isSuccess' => $isSuccess,
@@ -69,18 +69,18 @@ class JournalCategoryController extends Controller
             'data' => $data,
         ]);
     }
-    
+
     public function destroy(Request $request)
     {
         $isSuccess = true;
         $msg = 'Kategori berhasil dihapus';
         $data = JournalCategory::find($request->id);
-        if(! $data){
+        if (!$data) {
             return response()->json([
                 'isSuccess' => false,
                 'msg' => 'Kategori tidak ditemukan!',
-                'data' => 'ID '.$request->id.' NOT FOUND'
-            ]);
+                'data' => 'ID ' . $request->id . ' NOT FOUND'
+            ], 400);
         }
         $data->delete();
 

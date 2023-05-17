@@ -41,7 +41,7 @@ class UserController extends Controller
         $msg = null;
 
         DB::beginTransaction();
-        try{
+        try {
             $user = User::create([
                 'name' => $request->first_name,
                 'email' => $request->email,
@@ -57,13 +57,13 @@ class UserController extends Controller
             ]);
 
             $data = $user;
-            $msg = "Berhasil membuat user ".$request->email;
+            $msg = "Berhasil membuat user " . $request->email;
             DB::commit();
-        }catch(Exception $e){
+        } catch (Exception $e) {
             $data = $e->getMessage();
             $isError = true;
         }
-        
+
         return response()->json([
             'data' => $data,
             'isError' => $isError,
@@ -105,24 +105,75 @@ class UserController extends Controller
         $isSuccess = true;
         $msg = 'User berhasil diupdate';
         $user = User::find($request->id);
-        $data = UserDetail::where('user_id',$user->id)->first();
-        if(! $data){
+        $data = UserDetail::where('user_id', $user->id)->first();
+        if (!$data) {
             return response()->json([
                 'isSuccess' => false,
                 'msg' => 'User tidak ditemukan!',
-                'data' => 'ID '.$request->id.' NOT FOUND'
-            ]);
+                'data' => 'ID ' . $request->id . ' NOT FOUND'
+            ], 400);
         }
 
-        $data->first_name = $request->first_name == null ? $data->first_name : $request->first_name ;
-        $data->last_name = $request->last_name == null ? $data->last_name : $request->last_name ;
-        $data->phone = $request->phone == null ? $data->phone : $request->phone ;
+        $data->first_name = $request->first_name == null ? $data->first_name : $request->first_name;
+        $data->last_name = $request->last_name == null ? $data->last_name : $request->last_name;
+        $data->phone = $request->phone == null ? $data->phone : $request->phone;
         $data->save();
 
         return response()->json([
             'isSuccess' => $isSuccess,
             'msg' => $msg,
             'data' => new UserResource($user),
+        ]);
+    }
+
+    public function updateMe(Request $request)
+    {
+        $isSuccess = true;
+        $isChangePassword = $request->password;
+        $msg = 'Update Success!';
+        $user_id = Auth::id();
+        $user = User::find($user_id);
+        $data = UserDetail::where('user_id', $user_id)->first();
+        if (!$data || !$user) {
+            return response()->json([
+                'isSuccess' => false,
+                'msg' => 'User tidak ditemukan!',
+                'data' => 'ID ' . $request->id . ' NOT FOUND'
+            ], 400);
+        }
+
+        $user->email = $request->email == null ? $user->email : $request->email;
+        $user->name = $request->username == null ? $user->name : $request->username;
+        $user->password = $isChangePassword ? bcrypt($request->password) : $user->password;
+        $user->save();
+
+        $data->first_name = $request->first_name == null ? $data->first_name : $request->first_name;
+        $data->last_name = $request->last_name == null ? $data->last_name : $request->last_name;
+        $data->phone = $request->phone == null ? $data->phone : $request->phone;
+        $data->save();
+
+        $token = $request->bearerToken();
+        if ($isChangePassword) {
+            $user = User::find(Auth::id());
+            $user->tokens()->delete();
+            $token = $user->createToken('client-juraganakun')->plainTextToken;
+        }
+
+
+        return response()->json([
+            'isSuccess' => $isSuccess,
+            'msg' => $msg,
+            'data' => new UserResource($user),
+            'token' => $token,
+        ]);
+
+        $token = $user->createToken('client-juraganakun')->plainTextToken;
+
+        return response()->json([
+            'data' => new UserResource($user),
+            'isSuccess' => $isSuccess,
+            'msg' => $msg,
+            'token' => $token,
         ]);
     }
 
@@ -137,17 +188,17 @@ class UserController extends Controller
         $isSuccess = true;
         $msg = 'User berhasil dihapus';
         $user = User::find($request->id);
-        if(! $user){
+        if (!$user) {
             return response()->json([
                 'isSuccess' => false,
                 'msg' => 'Produk tidak ditemukan!',
-                'data' => 'ID '.$request->id.' NOT FOUND'
-            ]);
+                'data' => 'ID ' . $request->id . ' NOT FOUND'
+            ], 400);
         }
         $user->delete();
 
-        
-        $data = UserDetail::where('user_id',$request->id)->first();
+
+        $data = UserDetail::where('user_id', $request->id)->first();
         $data->delete();
 
         return response()->json([
@@ -174,7 +225,7 @@ class UserController extends Controller
     {
         $isSuccess = true;
         $msg = 'SUCCESS';
-        $data = new UserResource(User::find(Auth::id())); 
+        $data = new UserResource(User::find(Auth::id()));
 
         return response()->json([
             'isSuccess' => $isSuccess,
@@ -187,7 +238,7 @@ class UserController extends Controller
     {
         $isSuccess = true;
         $msg = 'SUCCESS';
-        $data = new UserResource(User::find($req->id)); 
+        $data = new UserResource(User::find($req->id));
 
         return response()->json([
             'isSuccess' => $isSuccess,
@@ -201,13 +252,13 @@ class UserController extends Controller
         $isSuccess = true;
         $msg = 'User berhasil diaktifkan';
         $user = User::find($request->id);
-        $data = UserDetail::where('user_id',$request->id)->first();
-        if(! $data){
+        $data = UserDetail::where('user_id', $request->id)->first();
+        if (!$data) {
             return response()->json([
                 'isSuccess' => false,
                 'msg' => 'User tidak ditemukan!',
-                'data' => 'ID '.$request->id.' NOT FOUND'
-            ]);
+                'data' => 'ID ' . $request->id . ' NOT FOUND'
+            ], 400);
         }
         $data->status = 9;
         $data->save();
@@ -224,13 +275,13 @@ class UserController extends Controller
         $isSuccess = true;
         $msg = 'User berhasil dinonaktifkan';
         $user = User::find($request->id);
-        $data = UserDetail::where('user_id',$request->id)->first();
-        if(! $data){
+        $data = UserDetail::where('user_id', $request->id)->first();
+        if (!$data) {
             return response()->json([
                 'isSuccess' => false,
                 'msg' => 'User tidak ditemukan!',
-                'data' => 'ID '.$request->id.' NOT FOUND'
-            ]);
+                'data' => 'ID ' . $request->id . ' NOT FOUND'
+            ], 400);
         }
         $data->status = 9;
         $data->save();

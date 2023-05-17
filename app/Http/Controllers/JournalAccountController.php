@@ -25,7 +25,7 @@ class JournalAccountController extends Controller
     {
         $isSuccess = true;
         $msg = 'SUCCESS';
-        $data = JournalAccount::where('journal_category_id',$req->journal_category_id)->get();
+        $data = JournalAccount::where('journal_category_id', $req->journal_category_id)->get();
 
         return response()->json([
             'isSuccess' => $isSuccess,
@@ -33,24 +33,24 @@ class JournalAccountController extends Controller
             'data' => $data,
         ]);
     }
-    
+
     public function store(Request $request)
     {
         $isSuccess = true;
         $data = null;
-        $msg = "Berhasil membuat jurnal account ".$request->name;
+        $msg = "Berhasil membuat jurnal account " . $request->name;
 
-        try{
+        try {
             $data = JournalAccount::create([
                 'name' => $request->name,
                 'balance' => $request->balance,
                 'status' => $request->status
             ]);
-        }catch(Exception $e){
+        } catch (Exception $e) {
             $msg = $e->getMessage();
             $isSuccess = false;
         }
-        
+
         return response()->json([
             'data' => $data,
             'isSuccess' => $isSuccess,
@@ -64,17 +64,17 @@ class JournalAccountController extends Controller
         $msg = 'Jurnal account berhasil diupdate';
 
         $data = JournalAccount::find($request->id);
-        if(! $data){
+        if (!$data) {
             return response()->json([
                 'isSuccess' => false,
                 'msg' => 'Jurnal account tidak ditemukan!',
-                'data' => 'ID '.$request->id.' NOT FOUND'
-            ]);
+                'data' => 'ID ' . $request->id . ' NOT FOUND'
+            ], 400);
         }
         $data->name = $request->name != null ? $request->name : $data->name;
         $data->balance = $request->balance != null ? $request->balance : $data->balance;
         $data->status = $request->status != null ? $request->status : $data->status;
-        $data->save(); 
+        $data->save();
 
         return response()->json([
             'isSuccess' => $isSuccess,
@@ -82,18 +82,18 @@ class JournalAccountController extends Controller
             'data' => $data,
         ]);
     }
-    
+
     public function destroy(Request $request)
     {
         $isSuccess = true;
         $msg = 'Jurnal account berhasil dihapus';
         $data = JournalAccount::find($request->id);
-        if(! $data){
+        if (!$data) {
             return response()->json([
                 'isSuccess' => false,
                 'msg' => 'Jurnal account tidak ditemukan!',
-                'data' => 'ID '.$request->id.' NOT FOUND'
-            ]);
+                'data' => 'ID ' . $request->id . ' NOT FOUND'
+            ], 400);
         }
         $data->delete();
 

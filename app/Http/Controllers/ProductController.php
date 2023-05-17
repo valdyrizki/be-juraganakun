@@ -48,45 +48,44 @@ class ProductController extends Controller
     {
         $isSuccess = true;
         $data = null;
-        $msg = "Berhasil membuat product ".$request->name;
+        $msg = "Berhasil membuat product " . $request->name;
 
 
         DB::beginTransaction();
 
         $image = $request->image;
-        try{
+        try {
             $data = Product::create([
                 'product_id' => $request->product_id,
                 'product_name' => $request->product_name,
-                'cogs' => (float) str_replace(['.', ','],'', $request->cogs),
-                'price' => (float) str_replace(['.', ','],'', $request->price),
+                'cogs' => (float) str_replace(['.', ','], '', $request->cogs),
+                'price' => (float) str_replace(['.', ','], '', $request->price),
                 'description' => $request->description,
                 'distributor' => $request->distributor,
                 'category_id' => $request->category_id,
                 'status' => $request->status,
                 'user_create' => Auth::id()
             ]);
-
-        }catch(Exception $e){
+        } catch (Exception $e) {
             $msg = $e->getMessage();
             $isSuccess = false;
         }
 
-        if($image != null){
+        if ($image != null) {
             $img_name = $image->getClientOriginalName();
             $maxFileId = ProductImage::max('id');
-            $img_id = $maxFileId+1;
+            $img_id = $maxFileId + 1;
 
-            try{
-                if($image){
-                    
+            try {
+                if ($image) {
+
                     // Save to disk
                     Storage::putFile('file', $image);
                     // Rename the Name
-                    $path = 'image/product/'.$data->product_id.'-'.$img_id.'-'.$image->getClientOriginalName();
+                    $path = 'image/product/' . $data->product_id . '-' . $img_id . '-' . $image->getClientOriginalName();
                     $path = str_replace(' ', '_', $path);
                     $path = str_replace('+', '-', $path);
-                    Storage::move('file/'.$image->hashName(), $path);
+                    Storage::move('file/' . $image->hashName(), $path);
 
                     $image = ProductImage::create([
                         'product_id' => $data->product_id,
@@ -96,7 +95,7 @@ class ProductController extends Controller
                         'user_create' => 0
                     ]);
                 }
-            }catch(Exception $e){
+            } catch (Exception $e) {
                 report($e);
                 $out = new \Symfony\Component\Console\Output\ConsoleOutput();
                 $out->writeln($e);
@@ -106,7 +105,7 @@ class ProductController extends Controller
         }
 
         DB::commit();
-        
+
         return response()->json([
             'data' => $data,
             'isSuccess' => $isSuccess,
@@ -148,44 +147,44 @@ class ProductController extends Controller
         $isSuccess = true;
         $msg = 'Produk berhasil diupdate';
         $data = Product::find($request->product_id);
-        
-        if(! $data){
+
+        if (!$data) {
             return response()->json([
                 'isSuccess' => false,
                 'msg' => 'Produk tidak ditemukan!',
                 'data' => $request->all()
-            ]);
+            ], 400);
         }
 
         DB::beginTransaction();
 
         $image = $request->image;
-        if($image != null){
+        if ($image != null) {
             $img_name = $image->getClientOriginalName();
 
-            try{
-                if($image){
+            try {
+                if ($image) {
 
                     $maxImgId = ProductFile::max('id');
-                    $img_id = $maxImgId+1;
+                    $img_id = $maxImgId + 1;
                     //remove temp file
-                    $temp = ProductImage::where('product_id',$data->product_id)->first();
-                    Storage::move($temp->path, '/temp/'.$temp->path);
-                    $temp->path = 'temp/'.$temp->path;
+                    $temp = ProductImage::where('product_id', $data->product_id)->first();
+                    Storage::move($temp->path, '/temp/' . $temp->path);
+                    $temp->path = 'temp/' . $temp->path;
                     $temp->product_id = 0;
                     $temp->status = 0;
-                    $temp->description = 'Deleted by '.Auth::id();
+                    $temp->description = 'Deleted by ' . Auth::id();
                     $temp->save();
-                    
+
                     // Save to disk
                     Storage::putFile('file', $image);
                     // Rename the Name
-                    $path = 'image/product/'.$data->product_id.'-'.$img_id.'-'.$image->getClientOriginalName();
+                    $path = 'image/product/' . $data->product_id . '-' . $img_id . '-' . $image->getClientOriginalName();
                     $path = str_replace(' ', '_', $path);
                     $path = str_replace('+', '-', $path);
-                    Storage::move('file/'.$image->hashName(), $path);
+                    Storage::move('file/' . $image->hashName(), $path);
 
-                    $temp = ProductImage::where('product_id',$data->product_id)->delete();
+                    $temp = ProductImage::where('product_id', $data->product_id)->delete();
 
                     $image = ProductImage::create([
                         'product_id' => $data->product_id,
@@ -195,7 +194,7 @@ class ProductController extends Controller
                         'user_create' => 0
                     ]);
                 }
-            }catch(Exception $e){
+            } catch (Exception $e) {
                 report($e);
                 $out = new \Symfony\Component\Console\Output\ConsoleOutput();
                 $out->writeln($e);
@@ -204,13 +203,13 @@ class ProductController extends Controller
             }
         }
 
-        $data->product_name = $request->product_name == null ? $data->product_name : $request->product_name ;
-        $data->cogs = $request->cogs == null ? $data->cogs : (float) str_replace(['.', ','],'', $request->cogs) ;
-        $data->price = $request->price == null ? $data->price : (float) str_replace(['.', ','],'', $request->price) ;
-        $data->description = $request->description == null ? $data->description : $request->description ;
-        $data->distributor = $request->distributor == null ? $data->distributor : $request->distributor ;
-        $data->category_id = $request->category_id == null ? $data->category_id : $request->category_id ;
-        $data->status = $request->status == null ? $data->status : $request->status ;
+        $data->product_name = $request->product_name == null ? $data->product_name : $request->product_name;
+        $data->cogs = $request->cogs == null ? $data->cogs : (float) str_replace(['.', ','], '', $request->cogs);
+        $data->price = $request->price == null ? $data->price : (float) str_replace(['.', ','], '', $request->price);
+        $data->description = $request->description == null ? $data->description : $request->description;
+        $data->distributor = $request->distributor == null ? $data->distributor : $request->distributor;
+        $data->category_id = $request->category_id == null ? $data->category_id : $request->category_id;
+        $data->status = $request->status == null ? $data->status : $request->status;
         $data->user_update = Auth::id();
         $data->save();
         DB::commit();
@@ -233,12 +232,12 @@ class ProductController extends Controller
         $isSuccess = true;
         $msg = 'Produk berhasil dihapus';
         $data = Product::find($request->product_id);
-        if(! $data){
+        if (!$data) {
             return response()->json([
                 'isSuccess' => false,
                 'msg' => 'Produk tidak ditemukan!',
-                'data' => 'ID '.$request->product_id.' NOT FOUND'
-            ]);
+                'data' => 'ID ' . $request->product_id . ' NOT FOUND'
+            ], 400);
         }
         $data->delete();
 
@@ -248,7 +247,7 @@ class ProductController extends Controller
             'data' => $data,
         ]);
     }
-    
+
     public function getAll()
     {
         $isSuccess = true;
@@ -267,7 +266,7 @@ class ProductController extends Controller
     {
         $isSuccess = true;
         $msg = 'SUCCESS';
-        $data = Product::where('status',1)->get();
+        $data = new ProductCollection(ProductResource::collection(Product::where('status', 1)->get()));
 
         return response()->json([
             'isSuccess' => $isSuccess,
@@ -276,19 +275,19 @@ class ProductController extends Controller
         ]);
     }
 
-    
+
 
     public function getByCode(Request $req)
     {
         $isSuccess = true;
         $msg = 'SUCCESS';
         $data = new ProductResource(Product::find($req->product_id));
-        if(! $data){
+        if (!$data) {
             return response()->json([
                 'isSuccess' => false,
                 'msg' => 'Produk tidak ditemukan!',
-                'data' => 'ID '.$req->product_id.' NOT FOUND'
-            ]);
+                'data' => 'ID ' . $req->product_id . ' NOT FOUND'
+            ], 400);
         }
 
         return response()->json([
@@ -302,13 +301,13 @@ class ProductController extends Controller
     {
         $isSuccess = true;
         $msg = 'SUCCESS';
-        $data = new ProductCollection(ProductResource::collection(Product::where('category_id',$req->category_id)->get()));
-        if(! $data){
+        $data = new ProductCollection(ProductResource::collection(Product::where('category_id', $req->category_id)->get()));
+        if (!$data) {
             return response()->json([
                 'isSuccess' => false,
                 'msg' => 'Produk tidak ditemukan!',
-                'data' => 'ID '.$req->category_id.' NOT FOUND'
-            ]);
+                'data' => 'ID ' . $req->category_id . ' NOT FOUND'
+            ], 400);
         }
 
         return response()->json([
@@ -323,12 +322,12 @@ class ProductController extends Controller
         $isSuccess = true;
         $msg = 'Produk berhasil diaktifkan';
         $data = Product::find($request->product_id);
-        if(! $data){
+        if (!$data) {
             return response()->json([
                 'isSuccess' => false,
                 'msg' => 'Produk tidak ditemukan!',
-                'data' => 'ID '.$request->product_id.' NOT FOUND'
-            ]);
+                'data' => 'ID ' . $request->product_id . ' NOT FOUND'
+            ], 400);
         }
         $data->status = 1;
         $data->save();
@@ -345,12 +344,12 @@ class ProductController extends Controller
         $isSuccess = true;
         $msg = 'Produk berhasil dinonaktifkan';
         $data = Product::find($request->product_id);
-        if(! $data){
+        if (!$data) {
             return response()->json([
                 'isSuccess' => false,
                 'msg' => 'Produk tidak ditemukan!',
-                'data' => 'ID '.$request->product_id.' NOT FOUND'
-            ]);
+                'data' => 'ID ' . $request->product_id . ' NOT FOUND'
+            ], 400);
         }
         $data->status = 9;
         $data->save();
@@ -367,60 +366,60 @@ class ProductController extends Controller
         $isSuccess = true;
         $msg = 'Stock berhasil ditambahkan';
         $data = Product::find($request->product_id);
-        
-        if(! $data){
+
+        if (!$data) {
             return response()->json([
                 'isSuccess' => false,
                 'msg' => 'Produk tidak ditemukan!',
                 'data' => $request->all()
-            ]);
+            ], 400);
         }
 
         DB::beginTransaction();
-        
+
         $maxFileId = ProductFile::max('id');
         $files = $request->file('files');
         $totalFile = count($files);
-        if($totalFile>0){
-            if($totalFile > 200){
+        if ($totalFile > 0) {
+            if ($totalFile > 200) {
                 return response()->json([
                     'isSuccess' => false,
                     'msg' => 'Max Upload 200 File!',
                     'data' => $request->all()
-                ]);
+                ], 400);
             }
             $i = 1;
             foreach ($files as $file) {
                 $filename = $file->getClientOriginalName();
-                $fileId = $maxFileId+$i;
+                $fileId = $maxFileId + $i;
 
-                try{
+                try {
                     // Save to disk
                     Storage::putFile('file', $file);
                     // Rename the Name
-                    $path = 'file/product/'.$data->product_id.'/'.$data->product_id.'-'.$fileId.'-'.$file->getClientOriginalName();
+                    $path = 'file/product/' . $data->product_id . '/' . $data->product_id . '-' . $fileId . '-' . $file->getClientOriginalName();
                     $path = str_replace(' ', '_', $path);
                     $path = str_replace('+', '-', $path);
-                    Storage::move('file/'.$file->hashName(), $path);
+                    Storage::move('file/' . $file->hashName(), $path);
 
-                    $isFileNmExist = ProductFile::where('filename',$filename)->first();
-                    if(! $isFileNmExist){
+                    $isFileNmExist = ProductFile::where('filename', $filename)->first();
+                    if (!$isFileNmExist) {
                         $file = ProductFile::create([
                             'product_id' => $data->product_id,
                             'filename' => $filename,
                             'path' => $path,
-                            'description' => 'Upload '.$i.'/'.$totalFile .'File',
+                            'description' => 'Upload ' . $i . '/' . $totalFile . 'File',
                             'code' => Str::orderedUuid(),
                             'user_create' => Auth::id()
                         ]);
-                    }else{
+                    } else {
                         return response()->json([
                             'isSuccess' => false,
-                            'msg' => 'Filename '.$filename.' Already exist',
+                            'msg' => 'Filename ' . $filename . ' Already exist',
                             'data' => $request->all()
-                        ]);
+                        ], 400);
                     }
-                }catch(Exception $e){
+                } catch (Exception $e) {
                     report($e);
                     $out = new \Symfony\Component\Console\Output\ConsoleOutput();
                     $out->writeln($e);
@@ -430,38 +429,38 @@ class ProductController extends Controller
                         'isSuccess' => false,
                         'msg' => 'Terjadi kesalahan saat upload file!',
                         'data' => $request->all()
-                    ]);
+                    ], 400);
                 }
                 $i++;
             }
-        }else{
+        } else {
             return response()->json([
                 'isSuccess' => false,
                 'msg' => 'File Kosong!',
                 'data' => $request->all()
-            ]);
+            ], 400);
         }
 
-        try{
+        try {
             Stock::create([
                 'product_id' => $data->product_id,
                 'stock_add' => $totalFile,
-                'description' => 'Stock Before = '.$data->stock,
+                'description' => 'Stock Before = ' . $data->stock,
                 'user_create' => Auth::id()
             ]);
-        }catch(Exception $e){
+        } catch (Exception $e) {
             return response()->json([
                 'isSuccess' => false,
                 'msg' => 'Gagal simpan history stock!',
                 'data' => $request->all()
-            ]);
+            ], 400);
         }
 
-        
+
 
         $data->stock = $data->stock + $totalFile;
         $data->save();
-        
+
         DB::commit();
 
         return response()->json([
@@ -473,15 +472,15 @@ class ProductController extends Controller
 
     public function downloadByCode(Request $request)
     {
-        $file = ProductFile::where('code',$request->code)->first();
-        if(! $file){
+        $file = ProductFile::where('code', $request->code)->first();
+        if (!$file) {
             return response()->json([
                 'isSuccess' => false,
                 'msg' => 'File tidak ditemukan!',
                 'data' => 'FILE NOT FOUND'
-            ]);
+            ], 400);
         }
-        
+
         $header = [
             'Content-Type' => 'application/*',
         ];
@@ -493,22 +492,30 @@ class ProductController extends Controller
     public function downloadByInvoice(Request $request)
     {
         $invoice_id = $request->invoice_id;
-        $file = ProductFile::where('invoice_id',$invoice_id)->get();
-        if(! $file){
+        $file = ProductFile::where('invoice_id', $invoice_id)->get();
+        if (!$file) {
             return response()->json([
                 'isSuccess' => false,
                 'msg' => 'File tidak ditemukan!',
                 'data' => 'FILE NOT FOUND'
-            ]);
+            ], 400);
         }
 
-        $valid = Transaction::where('invoice_id',$invoice_id)->where('user_id',Auth::id())->get();
-        if(! $valid){
+        $transaction = Transaction::where('invoice_id', $invoice_id)->where('user_id', Auth::id())->first();
+        if (!$transaction) {
             return response()->json([
                 'isSuccess' => false,
                 'msg' => 'Transaksi Tidak Ditemukan!',
                 'data' => 'TRANSACTION NOT FOUND'
-            ]);
+            ], 400);
+        }
+
+        if ($transaction->status != 1 && Auth::id() != 99) {
+            return response()->json([
+                'isSuccess' => false,
+                'msg' => 'Transaksi Tidak Ditemukan!',
+                'data' => 'TRANSACTION NOT FOUND'
+            ], 400);
         }
 
         $header = [
@@ -516,9 +523,9 @@ class ProductController extends Controller
         ];
 
         $response = null;
-        if($file->count() > 1){ //Jika lebih dari 1 akun, download zip file by invoice
-            $response = response()->download('file/transaction/'.$invoice_id.'/'.$invoice_id.'.zip', $invoice_id.'zip', $header);
-        }else{ //jika 1 akun, download 1 file tsb
+        if ($file->count() > 1) { //Jika lebih dari 1 akun, download zip file by invoice
+            $response = response()->download('file/transaction/' . $invoice_id . '/' . $invoice_id . '.zip', $invoice_id . 'zip', $header);
+        } else { //jika 1 akun, download 1 file tsb
             $response = response()->download($file[0]->path, $file[0]->filename, $header);
         }
         if (ob_get_length()) ob_end_clean();

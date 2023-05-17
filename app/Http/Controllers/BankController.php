@@ -14,7 +14,7 @@ class BankController extends Controller
     {
         $isSuccess = true;
         $msg = 'SUCCESS';
-        $data = Bank::where('status',1)->get();
+        $data = Bank::select('id', 'name', 'accnbr', 'description', 'status')->where('status', 1)->get();
 
         return response()->json([
             'isSuccess' => $isSuccess,
@@ -22,7 +22,7 @@ class BankController extends Controller
             'data' => $data,
         ]);
     }
-    
+
     public function getAll()
     {
         $isSuccess = true;
@@ -53,9 +53,9 @@ class BankController extends Controller
     {
         $isSuccess = true;
         $data = null;
-        $msg = "Berhasil menambah bank ".$request->name;
+        $msg = "Berhasil menambah bank " . $request->name;
 
-        try{
+        try {
             $data = Bank::create([
                 'name' => $request->name,
                 'accnbr' => $request->accnbr,
@@ -63,12 +63,11 @@ class BankController extends Controller
                 'description' => $request->description,
                 'status' => $request->status
             ]);
-
-        }catch(Exception $e){
+        } catch (Exception $e) {
             $msg = $e->getMessage();
             $isSuccess = false;
         }
-        
+
         return response()->json([
             'data' => $data,
             'isSuccess' => $isSuccess,
@@ -91,16 +90,16 @@ class BankController extends Controller
                 'isSuccess' => false,
                 'msg' => $validator->messages()->all(),
                 'data' => $validator->messages()
-            ]);
+            ], 400);
         }
 
         $data = Bank::find($request->id);
-        if(! $data){
+        if (!$data) {
             return response()->json([
                 'isSuccess' => false,
                 'msg' => 'Bank tidak ditemukan!',
-                'data' => 'ID '.$request->id.' NOT FOUND'
-            ]);
+                'data' => 'ID ' . $request->id . ' NOT FOUND'
+            ], 400);
         }
 
         $data->name = $request->name;
@@ -108,7 +107,7 @@ class BankController extends Controller
         $data->url_logo = $request->url_logo;
         $data->description = $request->description;
         $data->status = $request->status;
-        $data->save(); 
+        $data->save();
 
         return response()->json([
             'isSuccess' => $isSuccess,
@@ -122,12 +121,12 @@ class BankController extends Controller
         $isSuccess = true;
         $msg = 'Bank berhasil dihapus';
         $data = Bank::find($id);
-        if(! $data){
+        if (!$data) {
             return response()->json([
                 'isSuccess' => false,
                 'msg' => 'Bank tidak ditemukan!',
-                'data' => 'ID '.$id.' NOT FOUND'
-            ]);
+                'data' => 'ID ' . $id . ' NOT FOUND'
+            ], 400);
         }
         $data->delete();
 

@@ -14,20 +14,19 @@ class CategoryController extends Controller
     {
         $isSuccess = true;
         $data = null;
-        $msg = "Berhasil membuat kategori ".$request->category_name;
+        $msg = "Berhasil membuat kategori " . $request->category_name;
 
-        try{
+        try {
             $data = Category::create([
                 'category_name' => $request->category_name,
                 'category_id' => $request->category_id,
                 'user_create' => Auth::id()
             ]);
-
-        }catch(Exception $e){
+        } catch (Exception $e) {
             $msg = $e->getMessage();
             $isSuccess = false;
         }
-        
+
         return response()->json([
             'data' => $data,
             'isSuccess' => $isSuccess,
@@ -49,20 +48,20 @@ class CategoryController extends Controller
                 'isSuccess' => false,
                 'msg' => $validator->messages()->all(),
                 'data' => $validator->messages()
-            ]);
+            ], 400);
         }
 
         $data = Category::find($request->category_id);
-        if(! $data){
+        if (!$data) {
             return response()->json([
                 'isSuccess' => false,
                 'msg' => 'Kategori tidak ditemukan!',
-                'data' => 'ID '.$request->category_id.' NOT FOUND'
-            ]);
+                'data' => 'ID ' . $request->category_id . ' NOT FOUND'
+            ], 400);
         }
         $data->category_name = $request->category_name;
         $data->user_update = Auth::id();
-        $data->save(); 
+        $data->save();
 
         return response()->json([
             'isSuccess' => $isSuccess,
@@ -76,12 +75,12 @@ class CategoryController extends Controller
         $isSuccess = true;
         $msg = 'Kategori berhasil dihapus';
         $data = Category::find($category_id);
-        if(! $data){
+        if (!$data) {
             return response()->json([
                 'isSuccess' => false,
                 'msg' => 'Kategori tidak ditemukan!',
-                'data' => 'ID '.$category_id.' NOT FOUND'
-            ]);
+                'data' => 'ID ' . $category_id . ' NOT FOUND'
+            ], 400);
         }
         $data->delete();
 
@@ -91,7 +90,7 @@ class CategoryController extends Controller
             'data' => $data,
         ]);
     }
-    
+
     public function getAll()
     {
         $isSuccess = true;
@@ -110,18 +109,18 @@ class CategoryController extends Controller
         $isSuccess = true;
         $msg = 'SUCCESS';
         $data = Category::find($req->category_id);
-        if(! $data){
+        if (!$data) {
             return response()->json([
                 'isSuccess' => false,
                 'msg' => 'Kategori tidak ditemukan!',
-                'data' => 'ID '.$req->category_id.' NOT FOUND'
-            ]);
+                'data' => 'ID ' . $req->category_id . ' NOT FOUND'
+            ], 400);
         }
         return response()->json([
             'isSuccess' => $isSuccess,
             'msg' => $msg,
             'data' => $data,
-        ]); 
+        ]);
     }
 
     public function setActive($category_id)
@@ -129,12 +128,12 @@ class CategoryController extends Controller
         $isSuccess = true;
         $msg = 'Kategori berhasil diaktifkan';
         $data = Category::find($category_id);
-        if(! $data){
+        if (!$data) {
             return response()->json([
                 'isSuccess' => false,
                 'msg' => 'Kategori tidak ditemukan!',
-                'data' => 'ID '.$category_id.' NOT FOUND'
-            ]);
+                'data' => 'ID ' . $category_id . ' NOT FOUND'
+            ], 400);
         }
         $data->status = 1;
         $data->save();
@@ -151,12 +150,12 @@ class CategoryController extends Controller
         $isSuccess = true;
         $msg = 'Kategori berhasil dinonaktifkan';
         $data = Category::find($category_id);
-        if(! $data){
+        if (!$data) {
             return response()->json([
                 'isSuccess' => false,
                 'msg' => 'Kategori tidak ditemukan!',
-                'data' => 'ID '.$category_id.' NOT FOUND'
-            ]);
+                'data' => 'ID ' . $category_id . ' NOT FOUND'
+            ], 400);
         }
         $data->status = 9;
         $data->save();

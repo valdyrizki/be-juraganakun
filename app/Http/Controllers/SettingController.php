@@ -40,7 +40,7 @@ class SettingController extends Controller
     {
         $isSuccess = true;
         $data = null;
-        $msg = "Berhasil membuat pengaturan ".$request->setting_name;
+        $msg = "Berhasil membuat pengaturan " . $request->setting_name;
 
         //validate
         $validator = Validator::make($request->all(), [
@@ -53,22 +53,21 @@ class SettingController extends Controller
                 'isSuccess' => false,
                 'msg' => $validator->messages()->all(),
                 'data' => $validator->messages()
-            ]);
+            ], 400);
         }
 
-        try{
+        try {
             $data = Setting::create([
                 'setting_id' => $request->setting_id,
                 'setting_name' => $request->setting_name,
                 'setting_value' => $request->setting_value,
                 'user_create' => Auth::id()
             ]);
-
-        }catch(Exception $e){
+        } catch (Exception $e) {
             $msg = $e->getMessage();
             $isSuccess = false;
         }
-        
+
         return response()->json([
             'data' => $data,
             'isSuccess' => $isSuccess,
@@ -120,21 +119,21 @@ class SettingController extends Controller
                 'isSuccess' => false,
                 'msg' => $validator->messages()->all(),
                 'data' => $validator->messages()
-            ]);
+            ], 400);
         }
 
         $data = Setting::find($request->setting_id);
-        if(! $data){
+        if (!$data) {
             return response()->json([
                 'isSuccess' => false,
                 'msg' => 'Pengaturan tidak ditemukan!',
-                'data' => 'ID '.$request->setting_id.' NOT FOUND'
-            ]);
+                'data' => 'ID ' . $request->setting_id . ' NOT FOUND'
+            ], 400);
         }
         $data->setting_name = $request->setting_name != null ? $request->setting_name : $data->setting_name;
         $data->setting_value = $request->setting_value;
         $data->user_update = Auth::id();
-        $data->save(); 
+        $data->save();
 
         return response()->json([
             'isSuccess' => $isSuccess,
@@ -154,12 +153,12 @@ class SettingController extends Controller
         $isSuccess = true;
         $msg = 'Pengaturan berhasil dihapus';
         $data = Setting::find($request->setting_id);
-        if(! $data){
+        if (!$data) {
             return response()->json([
                 'isSuccess' => false,
                 'msg' => 'Pengaturan tidak ditemukan!',
-                'data' => 'ID '.$request->setting_id.' NOT FOUND'
-            ]);
+                'data' => 'ID ' . $request->setting_id . ' NOT FOUND'
+            ], 400);
         }
         $data->delete();
 
@@ -188,17 +187,17 @@ class SettingController extends Controller
         $isSuccess = true;
         $msg = 'SUCCESS';
         $data = Setting::find($request->setting_id);
-        if(! $data){
-            return response()->json([   
+        if (!$data) {
+            return response()->json([
                 'isSuccess' => false,
                 'msg' => 'Pengaturan tidak ditemukan!',
-                'data' => 'ID '.$request->setting_id.' NOT FOUND'
-            ]);
+                'data' => 'ID ' . $request->setting_id . ' NOT FOUND'
+            ], 400);
         }
         return response()->json([
             'isSuccess' => $isSuccess,
             'msg' => $msg,
             'data' => $data,
-        ]); 
+        ]);
     }
 }

@@ -23,7 +23,7 @@ class JournalTransactionController extends Controller
             'data' => $data,
         ]);
     }
-    
+
     // public function store(Request $request)
     // {
     //     $isSuccess = true;
@@ -43,7 +43,7 @@ class JournalTransactionController extends Controller
     //         $msg = $e->getMessage();
     //         $isSuccess = false;
     //     }
-        
+
     //     return response()->json([
     //         'data' => $data,
     //         'isSuccess' => $isSuccess,
@@ -55,9 +55,9 @@ class JournalTransactionController extends Controller
     {
         $isSuccess = true;
         $data = null;
-        $msg = "Berhasil membuat jurnal transaction ".$request->txid;
+        $msg = "Berhasil membuat jurnal transaction " . $request->txid;
 
-        try{
+        try {
             $DB = JournalTransaction::create([
                 'txid' => $request->txid,
                 'journal_account_id' => $request->db_journal_account_id,
@@ -74,11 +74,11 @@ class JournalTransactionController extends Controller
                 'description' => $request->description,
                 'user_create' => Auth::id()
             ]);
-        }catch(Exception $e){
+        } catch (Exception $e) {
             $msg = $e->getMessage();
             $isSuccess = false;
         }
-        
+
         return response()->json([
             'data' => $data,
             'isSuccess' => $isSuccess,
@@ -113,18 +113,18 @@ class JournalTransactionController extends Controller
     //         'data' => $data,
     //     ]);
     // }
-    
+
     public function destroy(Request $request)
     {
         $isSuccess = true;
         $msg = 'Jurnal transaction berhasil dihapus';
         $data = JournalTransaction::find($request->id);
-        if(! $data){
+        if (!$data) {
             return response()->json([
                 'isSuccess' => false,
                 'msg' => 'Jurnal transaction tidak ditemukan!',
-                'data' => 'ID '.$request->id.' NOT FOUND'
-            ]);
+                'data' => 'ID ' . $request->id . ' NOT FOUND'
+            ], 400);
         }
         $data->delete();
 
@@ -138,8 +138,8 @@ class JournalTransactionController extends Controller
     public function getTxId()
     {
         $random =  Str::random(12);
-        $count = JournalTransaction::where('txid',$random)->count();
-        if ($count>0) {
+        $count = JournalTransaction::where('txid', $random)->count();
+        if ($count > 0) {
             $random =  Str::random(12);
         }
         return $random;
@@ -149,14 +149,14 @@ class JournalTransactionController extends Controller
     {
         $isSuccess = true;
         $msg = 'SUCCESS';
-        $trx = JournalTransaction::whereBetween('created_at',[$req->startDate, $req->endDate.' 23:59:59'])->get();
-        
-        if($trx->count() < 1){
+        $trx = JournalTransaction::whereBetween('created_at', [$req->startDate, $req->endDate . ' 23:59:59'])->get();
+
+        if ($trx->count() < 1) {
             return response()->json([
                 'isSuccess' => false,
                 'msg' => 'Transaksi tidak ditemukan!',
                 'data' => 'TRX NOT FOUND'
-            ]);
+            ], 400);
         }
         $data = JournalTransactionResource::collection($trx);
 
