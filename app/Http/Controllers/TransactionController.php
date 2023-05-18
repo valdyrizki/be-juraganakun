@@ -137,6 +137,7 @@ class TransactionController extends Controller
                 ]);
 
                 $productDB->stock = $productDB->stock - $qty;
+                $productDB->sold = $productDB->sold + $qty;
                 $productDB->save();
                 $product_files = ProductFile::whereNull('invoice_id')->where("product_id", $productDB->product_id)->take($qty)->get();
 
