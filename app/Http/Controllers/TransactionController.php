@@ -14,7 +14,6 @@ use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
 use ZipArchive;
 
@@ -188,6 +187,10 @@ class TransactionController extends Controller
                     $TripayController = new TripayController();
                     $stsTripay = $TripayController->createTrancaction($request);
                     $redirect = $stsTripay->data->checkout_url;
+
+                    //update reference_id in transaction
+                    $transaction->invoice_merchant = $stsTripay->data->reference;
+                    $transaction->save();
                 } else {
                     $redirect = env('FE_APP_URL') . '/invoice/detail/' . $invoice_id;
                 }
@@ -492,6 +495,14 @@ Request : " . $description . "
                 'isSuccess' => false,
                 'msg' => 'Transaksi tidak ditemukan!',
                 'data' => 'ID ' . $request->invoice_id . ' NOT FOUND'
+            ], 400);
+        }
+
+        if ($data->status == 1) {
+            return response()->json([
+                'isSuccess' => false,
+                'msg' => 'Transaksi sudah dikonfirmasi!',
+                'data' => 'ID ' . $request->invoice_id . ' IS SUCCESS'
             ], 400);
         }
 

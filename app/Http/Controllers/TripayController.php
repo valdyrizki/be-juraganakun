@@ -109,9 +109,12 @@ class TripayController extends Controller
                 return response()->json(['success' => true]);
 
             case 'EXPIRED':
-                $transaction->update(['status' => 3]);
-                $transactionController->setExpired($req);
+                if ($transaction->status != 1) {
+                    $transaction->update(['status' => 3]);
+                    $transactionController->setExpired($req);
+                }
                 return response()->json(['success' => true]);
+
 
             case 'FAILED':
                 $transaction->update(['status' => 9]);

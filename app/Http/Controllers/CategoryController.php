@@ -91,6 +91,19 @@ class CategoryController extends Controller
         ]);
     }
 
+    public function get()
+    {
+        $isSuccess = true;
+        $msg = 'SUCCESS';
+        $data = Category::orderBy('seq', 'ASC')->get();
+
+        return response()->json([
+            'isSuccess' => $isSuccess,
+            'msg' => $msg,
+            'data' => $data,
+        ]);
+    }
+
     public function getAll()
     {
         $isSuccess = true;

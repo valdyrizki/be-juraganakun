@@ -501,7 +501,14 @@ class ProductController extends Controller
             ], 400);
         }
 
-        $transaction = Transaction::where('invoice_id', $invoice_id)->where('user_id', Auth::id())->first();
+        //Perbaiki untuk ADMIN & SUPERUSER tidak bisa download file 
+        $transaction = false;
+        if (Auth::user()->level === "99" || Auth::user()->level === "10") {
+            $transaction = Transaction::where('invoice_id', $invoice_id)->first();
+        } else {
+            $transaction = Transaction::where('invoice_id', $invoice_id)->where('user_id', Auth::id())->first();
+        }
+
         if (!$transaction) {
             return response()->json([
                 'isSuccess' => false,

@@ -28,6 +28,7 @@ class TransactionResource extends JsonResource
             'coupon' => $this->coupon,
             'description' => $this->description,
             'bank' => (Auth::user()->level == '99' ? $this->bank : 'QRIS'), //Hanya ditampilkan untuk superuser
+            'invoice_merchant' => $this->invoice_merchant,
             'status' => $this->status,
             'eod_id' => $this->eod_id,
             'created_at' => Carbon::create($this->created_at)->toDateTimeString(),
