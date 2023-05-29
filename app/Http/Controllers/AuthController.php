@@ -79,6 +79,29 @@ class AuthController extends Controller
         ]);
     }
 
+    public function loginAdmin(Request $request)
+    {
+        $isSuccess = true;
+        $msg = "Login Successfully";
+
+        $user = User::where('email', $request->email)->first();
+
+        if (!$user || !Hash::check($request->password, $user->password) || ($user->level != '10' && $user->level != '99')) {
+            return response([
+                'msg' => ['These credentials do not match our records.']
+            ], 401);
+        }
+
+        $token = $user->createToken('client-juraganakun')->plainTextToken;
+
+        return response()->json([
+            'data' => new UserResource($user),
+            'isSuccess' => $isSuccess,
+            'msg' => $msg,
+            'token' => $token,
+        ]);
+    }
+
     public function checkPassword(Request $request)
     {
         $isSuccess = true;

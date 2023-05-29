@@ -35,6 +35,7 @@ use Illuminate\Support\Facades\Route;
 Route::controller(AuthController::class)->group((function () {
     Route::post('/auth/register', 'register');
     Route::post('/auth/login', 'login');
+    Route::post('/auth/loginadmin', 'loginAdmin');
 }));
 
 //PRODUCT
@@ -47,7 +48,7 @@ Route::controller(ProductController::class)->group((function () {
 
 //CATEGORY
 Route::controller(CategoryController::class)->group((function () {
-    Route::get('/category', 'getAll');
+    Route::get('/category', 'get');
     Route::get('/category/getbyid', 'getbyid');
 }));
 
@@ -123,6 +124,7 @@ Route::middleware('auth:sanctum')->group(function () {
         }));
 
         Route::controller(CategoryController::class)->group((function () {
+            Route::get('/category/getall', 'getAll');
             Route::post('/category', 'store');
             Route::PUT('/category/update', 'update');
             Route::PUT('/category/setactive/{category_id}', 'setActive');
