@@ -15,7 +15,9 @@ class BlockIPMiddleware
 
     public $whitelistDomains = [
         'http://juraganakun.com',
+        'https://juraganakun.com',
         'http://admin.juraganakun.com',
+        'https://admin.juraganakun.com',
     ];
 
     public function handle(Request $request, Closure $next)

@@ -55,7 +55,7 @@ class Handler extends ExceptionHandler
             if ($request->is('api/*')) {
                 return response()->json([
                     'isSuccess' => false,
-                    'message' => 'Request not found, Please try to check the URL.'
+                    'msg' => 'Request not found, Please try to check the URL.'
                 ], 404);
             }
         });
@@ -64,7 +64,7 @@ class Handler extends ExceptionHandler
             if ($request->is('api/*')) {
                 return response()->json([
                     'isSuccess' => false,
-                    'message' => 'Authenticate Failed.'
+                    'msg' => 'Authenticate Failed.'
                 ], 404);
             }
         });

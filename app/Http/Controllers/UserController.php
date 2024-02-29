@@ -14,99 +14,55 @@ use Illuminate\Support\Facades\Hash;
 
 class UserController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     *
-     * @return \Illuminate\Http\Response
-     */
-    public function index()
-    {
-        //
-    }
-
-    /**
-     * Show the form for creating a new resource.
-     *
-     * @return \Illuminate\Http\Response
-     */
-    public function create()
-    {
-        //
-    }
 
     public function store(Request $request)
     {
         $isError = false;
         $data = null;
         $msg = null;
+        $stsCode = 201;
 
         DB::beginTransaction();
         try {
             $user = User::create([
-                'name' => $request->first_name,
+                'name' => $request->username,
                 'email' => $request->email,
                 'password' => bcrypt($request->password),
-                'level' => 1,
+                'level' => $request->level,
             ]);
 
             UserDetail::create([
                 'user_id' => $user->id,
-                'first_name' => $request->first_name,
-                'last_name' => $request->last_name,
+                'first_name' => $request->firstname,
+                'last_name' => $request->lastname,
                 'phone' => $request->phone,
+                'status' => $request->status,
             ]);
 
             $data = $user;
             $msg = "Berhasil membuat user " . $request->email;
             DB::commit();
         } catch (Exception $e) {
-            $data = $e->getMessage();
+            $msg = $e->getMessage();
             $isError = true;
+            $stsCode = 400;
         }
 
         return response()->json([
             'data' => $data,
             'isError' => $isError,
             'msg' => $msg
-        ]);
+        ], $stsCode);
     }
 
-    /**
-     * Display the specified resource.
-     *
-     * @param  int  $id
-     * @return \Illuminate\Http\Response
-     */
-    public function show($id)
-    {
-        //
-    }
-
-    /**
-     * Show the form for editing the specified resource.
-     *
-     * @param  int  $id
-     * @return \Illuminate\Http\Response
-     */
-    public function edit($id)
-    {
-        //
-    }
-
-    /**
-     * Update the specified resource in storage.
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @param  int  $id
-     * @return \Illuminate\Http\Response
-     */
     public function update(Request $request)
     {
         $isSuccess = true;
-        $msg = 'User berhasil diupdate';
+        $stsCode = 200;
+        $data = null;
         $user = User::find($request->id);
-        $data = UserDetail::where('user_id', $user->id)->first();
-        if (!$data) {
+        $userDetail = UserDetail::where('user_id', $user->id)->first();
+        if (!$userDetail || !$user) {
             return response()->json([
                 'isSuccess' => false,
                 'msg' => 'User tidak ditemukan!',
@@ -114,16 +70,34 @@ class UserController extends Controller
             ], 400);
         }
 
-        $data->first_name = $request->first_name == null ? $data->first_name : $request->first_name;
-        $data->last_name = $request->last_name == null ? $data->last_name : $request->last_name;
-        $data->phone = $request->phone == null ? $data->phone : $request->phone;
-        $data->save();
+        DB::beginTransaction();
+        try {
+            $user->name = $request->name == null ? $user->name : $request->name;
+            $user->level = $request->level == null ? $user->level : $request->level;
+            $user->password = $request->password == null ? $user->password : bcrypt($request->password);
+            $user->save();
+
+            $userDetail->first_name = $request->firstname == null ? $userDetail->firstname : $request->firstname;
+            $userDetail->last_name = $request->lastname == null ? $userDetail->lastname : $request->lastname;
+            $userDetail->phone = $request->phone == null ? $userDetail->phone : $request->phone;
+            $userDetail->status = $request->status == null ? $userDetail->status : $request->status;
+            $userDetail->save();
+
+            $data = new UserResource($user);
+            $msg = "Berhasil update user " . $request->email;
+            DB::commit();
+        } catch (Exception $e) {
+            $msg = $e->getMessage();
+            $isSuccess = false;
+            $stsCode = 400;
+            DB::rollBack();
+        }
 
         return response()->json([
             'isSuccess' => $isSuccess,
             'msg' => $msg,
-            'data' => new UserResource($user),
-        ]);
+            'data' => $data,
+        ], $stsCode);
     }
 
     public function updateMe(Request $request)
@@ -188,27 +162,51 @@ class UserController extends Controller
         $isSuccess = true;
         $msg = 'User berhasil dihapus';
         $user = User::find($request->id);
+        $data = null;
+        $stsCode = 200;
+
         if (!$user) {
             return response()->json([
                 'isSuccess' => false,
-                'msg' => 'Produk tidak ditemukan!',
+                'msg' => 'User tidak ditemukan!',
                 'data' => 'ID ' . $request->id . ' NOT FOUND'
             ], 400);
         }
-        $user->delete();
 
-
-        $data = UserDetail::where('user_id', $request->id)->first();
-        $data->delete();
+        DB::beginTransaction();
+        try {
+            $user->delete();
+            $data = UserDetail::where('user_id', $request->id)->first();
+            $data->delete();
+            DB::commit();
+        } catch (Exception $e) {
+            $msg = $e->getMessage();
+            $isSuccess = false;
+            $stsCode = 400;
+            DB::rollBack();
+        }
 
         return response()->json([
             'isSuccess' => $isSuccess,
             'msg' => $msg,
             'data' => $user,
-        ]);
+        ], $stsCode);
     }
 
     public function get()
+    {
+        $isSuccess = true;
+        $msg = 'SUCCESS';
+        $data = new UserCollection(UserResource::collection(User::all()));
+
+        return response()->json([
+            'isSuccess' => $isSuccess,
+            'msg' => $msg,
+            'data' => $data,
+        ]);
+    }
+
+    public function getAll()
     {
         $isSuccess = true;
         $msg = 'SUCCESS';

@@ -344,7 +344,7 @@ Request : " . $description . "
     {
         $isSuccess = true;
         $msg = 'SUCCESS';
-        $data = TransactionResource::collection(Transaction::where('user_id', Auth::user()->id)->orderBy('invoice_id', 'DESC')->get());
+        $data = TransactionResource::collection(Transaction::where('user_id', Auth::user()->id)->orderBy('invoice_id', 'DESC')->limit(100)->get());
 
         return response()->json([
             'isSuccess' => $isSuccess,
@@ -359,6 +359,34 @@ Request : " . $description . "
         $msg = 'SUCCESS';
         $trx = Transaction::find($req->invoice_id);
         $data = new TransactionResource($trx);
+
+        return response()->json([
+            'isSuccess' => $isSuccess,
+            'msg' => $msg,
+            'data' => $data,
+        ]);
+    }
+
+    public function getByInvoiceSearch($invoice_id)
+    {
+        $isSuccess = true;
+        $msg = 'SUCCESS';
+        $trx = Transaction::where('invoice_id', 'LIKE', '%' . $invoice_id . '%')->get();
+        $data = TransactionResource::collection($trx);
+
+        return response()->json([
+            'isSuccess' => $isSuccess,
+            'msg' => $msg,
+            'data' => $data,
+        ]);
+    }
+
+    public function getByClientName($client_name)
+    {
+        $isSuccess = true;
+        $msg = 'SUCCESS';
+        $trx = Transaction::where('client_name', 'LIKE', '%' . $client_name . '%')->get();
+        $data = TransactionResource::collection($trx);
 
         return response()->json([
             'isSuccess' => $isSuccess,
@@ -395,6 +423,15 @@ Request : " . $description . "
             'isSuccess' => true,
             'msg' => 'SUCCESS',
             'data' => TransactionResource::collection(Transaction::orderBy('invoice_id', 'desc')->take($i)->get()),
+        ]);
+    }
+
+    public function getByStatus($i)
+    {
+        return response()->json([
+            'isSuccess' => true,
+            'msg' => 'SUCCESS',
+            'data' => TransactionResource::collection(Transaction::where('status', $i)->orderBy('invoice_id', 'desc')->get()),
         ]);
     }
 

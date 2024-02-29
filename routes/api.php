@@ -10,6 +10,7 @@ use App\Http\Controllers\JournalAccountController;
 use App\Http\Controllers\JournalCategoryController;
 use App\Http\Controllers\JournalTransactionController;
 use App\Http\Controllers\ProductController;
+use App\Http\Controllers\ReplicateAIController;
 use App\Http\Controllers\SettingController;
 use App\Http\Controllers\TransactionController;
 use App\Http\Controllers\TripayController;
@@ -56,6 +57,15 @@ Route::controller(CategoryController::class)->group((function () {
 Route::controller(TripayController::class)->group((function () {
     Route::post('/tripay/callback', 'callback');
 }));
+
+Route::controller(ReplicateAIController::class)->group((function () {
+    Route::post('/ai/test', 'testAI');
+    Route::post('/ai/generateimage', 'generateImage');
+    Route::post('/ai/enhanceimage', 'enhanceImage');
+    Route::get('/ai/getreplicatebyid', 'getReplicateById');
+    Route::post('/ai/webhook', 'webHook');
+}));
+
 //END OF PUBLIC API
 
 // Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
@@ -85,6 +95,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::controller(TransactionController::class)->group((function () {
         Route::post('/transaction/store', 'store');
         Route::get('/transaction/getmy', 'getMy');
+        Route::get('/transaction/getmy/paginate', 'getMyPaginate');
     }));
 
     Route::controller(BankController::class)->group((function () {
@@ -113,23 +124,23 @@ Route::middleware('auth:sanctum')->group(function () {
         }));
 
         Route::controller(UserController::class)->group((function () {
-            Route::post('/user/store', 'store');
             Route::get('/user/getall', 'getAll');
-            Route::get('/user/get', 'get');
+            Route::get('/user', 'get');
+            Route::DELETE('/user', 'destroy');
+            Route::post('/user', 'store');
+            Route::PUT('/user', 'update');
             Route::get('/user/getbyid', 'getById');
-            Route::PUT('/user/update', 'update');
             Route::PUT('/user/setactive', 'setActive');
             Route::PUT('/user/setdisable', 'setDisable');
-            Route::DELETE('/user/destroy', 'destroy');
         }));
 
         Route::controller(CategoryController::class)->group((function () {
             Route::get('/category/getall', 'getAll');
             Route::post('/category', 'store');
-            Route::PUT('/category/update', 'update');
+            Route::PUT('/category', 'update');
             Route::PUT('/category/setactive/{category_id}', 'setActive');
             Route::PUT('/category/setdisable/{category_id}', 'setDisable');
-            Route::DELETE('/category/{category_id}', 'destroy');
+            Route::DELETE('/category', 'destroy');
         }));
 
         Route::controller(ProductController::class)->group((function () {
@@ -149,6 +160,9 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('/transaction/getbyinvoice', 'getByInvoice');
             Route::get('/transaction/getbyrange', 'getByRange');
             Route::get('/transaction/getbyrecord/{i}', 'getByRecord');
+            Route::get('/transaction/getbystatus/{i}', 'getByStatus');
+            Route::get('/transaction/getbyinvoice/{invoice_id}', 'getByInvoiceSearch');
+            Route::get('/transaction/getbyclientname/{client_name}', 'getByClientName');
             Route::get('/transaction/getactive', 'getActive'); //Belum dibayar
             Route::get('/transaction/getdone', 'getDone'); //Sudah dibayar
             Route::get('/transaction/getcancel', 'getCancel');
@@ -177,8 +191,10 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::controller(FileController::class)->group((function () {
             Route::get('/file', 'get');
             Route::get('/file/getbyinvoice', 'getByInvoice');
+            Route::get('/file/getbyfilename', 'getByFileName');
             Route::get('/file/getbyproduct', 'getByProduct');
             Route::get('/file/getpreviewfile', 'getPreviewFile');
+            Route::get('/file/getbyrecord/{i}', 'getByRecord');
         }));
 
         Route::controller(JournalAccountController::class)->group((function () {
@@ -203,6 +219,14 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::post('/journal-transaction/store', 'store');
             Route::put('/journal-transaction/update', 'update');
             Route::delete('/journal-transaction/delete', 'delete');
+        }));
+
+        Route::controller(RoleController::class)->group((function () {
+            Route::get('/role', 'get');
+            Route::post('/role', 'store');
+            Route::put('/role', 'update');
+            Route::delete('/role', 'delete');
+            Route::get('/role/getbyuserid', 'getByUserId');
         }));
     });
     //END OF ACCESS ADMIN & SUPERUSER ONLY
@@ -262,5 +286,6 @@ Route::get('/config-cache', function () {
     $exitCode = Artisan::call('config:cache');
     return '<h1>Clear Config cleared</h1>';
 });
+
 
 //END OF CLEANSING FOR DEVELOPMENT
