@@ -13,10 +13,9 @@ return new class extends Migration
      */
     public function up()
     {
-        Schema::create('roles', function (Blueprint $table) {
-            $table->char('id', '2')->primary();
-            $table->string('role_name', '32');
-            $table->smallInteger('status')->default(1);
+        Schema::create('replicate_a_i_s', function (Blueprint $table) {
+            $table->id();
+            $table->timestamps();
         });
     }
 
@@ -27,6 +26,6 @@ return new class extends Migration
      */
     public function down()
     {
-        Schema::dropIfExists('roles');
+        Schema::dropIfExists('replicate_a_i_s');
     }
 };

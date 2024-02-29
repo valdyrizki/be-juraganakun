@@ -15,41 +15,34 @@ class CategoryController extends Controller
         $isSuccess = true;
         $data = null;
         $msg = "Berhasil membuat kategori " . $request->category_name;
+        $stsCode = 201;
 
         try {
             $data = Category::create([
                 'category_name' => $request->category_name,
                 'category_id' => $request->category_id,
+                'seq' => $request->seq,
+                'status' => $request->status,
                 'user_create' => Auth::id()
             ]);
         } catch (Exception $e) {
             $msg = $e->getMessage();
             $isSuccess = false;
+            $stsCode = 400;
         }
 
         return response()->json([
             'data' => $data,
             'isSuccess' => $isSuccess,
             'msg' => $msg
-        ]);
+        ], $stsCode);
     }
 
     public function update(Request $request)
     {
         $isSuccess = true;
         $msg = 'Kategori berhasil diupdate';
-
-        //validate
-        $validator = Validator::make($request->all(), [
-            'category_name' => 'required|max:30'
-        ]);
-        if ($validator->fails()) {
-            return response()->json([
-                'isSuccess' => false,
-                'msg' => $validator->messages()->all(),
-                'data' => $validator->messages()
-            ], 400);
-        }
+        $stsCode = 200;
 
         $data = Category::find($request->category_id);
         if (!$data) {
@@ -59,27 +52,36 @@ class CategoryController extends Controller
                 'data' => 'ID ' . $request->category_id . ' NOT FOUND'
             ], 400);
         }
-        $data->category_name = $request->category_name;
-        $data->user_update = Auth::id();
-        $data->save();
+
+        try {
+            $data->category_name = $request->category_name;
+            $data->status = $request->status;
+            $data->seq = $request->seq;
+            $data->user_update = Auth::id();
+            $data->save();
+        } catch (Exception $e) {
+            $msg = $e->getMessage();
+            $isSuccess = false;
+            $stsCode = 400;
+        }
 
         return response()->json([
             'isSuccess' => $isSuccess,
             'msg' => $msg,
             'data' => $data,
-        ]);
+        ], $stsCode);
     }
 
-    public function destroy($category_id)
+    public function destroy(Request $req)
     {
         $isSuccess = true;
         $msg = 'Kategori berhasil dihapus';
-        $data = Category::find($category_id);
+        $data = Category::find($req->category_id);
         if (!$data) {
             return response()->json([
                 'isSuccess' => false,
                 'msg' => 'Kategori tidak ditemukan!',
-                'data' => 'ID ' . $category_id . ' NOT FOUND'
+                'data' => 'ID ' . $req->category_id . ' NOT FOUND'
             ], 400);
         }
         $data->delete();
