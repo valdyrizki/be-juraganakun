@@ -11,6 +11,7 @@ use App\Http\Controllers\JournalCategoryController;
 use App\Http\Controllers\JournalTransactionController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\ReplicateAIController;
+use App\Http\Controllers\RoleController;
 use App\Http\Controllers\SettingController;
 use App\Http\Controllers\TransactionController;
 use App\Http\Controllers\TripayController;

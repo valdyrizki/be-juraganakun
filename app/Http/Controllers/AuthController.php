@@ -2,9 +2,12 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\LoginRequest;
+use App\Http\Requests\RegisterRequest;
 use App\Http\Resources\UserResource;
 use App\Models\User;
 use App\Models\UserDetail;
+use App\Traits\ApiResponseTrait;
 use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -13,15 +16,10 @@ use Illuminate\Support\Facades\Hash;
 
 class AuthController extends Controller
 {
-    public function register(Request $request)
+    use ApiResponseTrait;
+    public function register(RegisterRequest $request)
     {
-        $isSuccess = true;
-        $data = null;
-        $msg = 'Register Failed!';
-        $stscode = 201;
-
         DB::beginTransaction();
-
         try {
             $user = User::create([
                 'name' => $request->username,
@@ -36,45 +34,29 @@ class AuthController extends Controller
                 'first_name' => $request->firstname,
                 'last_name' => $request->lastname,
             ]);
-
-            $data = $user;
-            $msg = "Berhasil membuat user " . $request->email;
         } catch (Exception $e) {
-
             DB::rollBack();
-            $data = $e->getMessage();
-            $isSuccess = false;
-            $stscode = 400;
+            return $this->errorResponse("Error when Register, please contact admin support by WA : +6283818213645", false, 400);
         }
 
         DB::commit();
-
-        return response()->json([
-            'data' => $data,
-            'isSuccess' => $isSuccess,
-            'msg' => $msg
-        ], $stscode);
+        return $this->successResponse($user, "Register Success!");
     }
 
-    public function login(Request $request)
+    public function login(LoginRequest $request)
     {
-        $isSuccess = true;
-        $msg = "Login Successfully";
-
         $user = User::where('email', $request->email)->first();
 
         if (!$user || !Hash::check($request->password, $user->password)) {
-            return response([
-                'msg' => ['These credentials do not match our records.']
-            ], 401);
+            return $this->errorResponse("Login Invalid", false, 401);
         }
 
         $token = $user->createToken('client-juraganakun')->plainTextToken;
 
         return response()->json([
             'data' => new UserResource($user),
-            'isSuccess' => $isSuccess,
-            'msg' => $msg,
+            'success' => true,
+            'message' => "Login Success!",
             'token' => $token,
         ]);
     }
