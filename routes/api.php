@@ -67,6 +67,11 @@ Route::controller(ReplicateAIController::class)->group((function () {
     Route::post('/ai/webhook', 'webHook');
 }));
 
+//GET APP BE VERSION
+Route::get('/about', function () {
+    return '<h1>About Apps : </h1><h4>APP NAME : JURAGANAKUN</h4> <h4>APP VERSION : v' . env('APP_VERSION', '1.0.0') . '</h4>';
+});
+
 //END OF PUBLIC API
 
 // Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
