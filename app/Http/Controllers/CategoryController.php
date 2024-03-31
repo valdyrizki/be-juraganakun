@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Category;
+use App\Traits\ApiResponseTrait;
 use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -10,6 +11,7 @@ use Illuminate\Support\Facades\Validator;
 
 class CategoryController extends Controller
 {
+    use ApiResponseTrait;
     public function store(Request $request)
     {
         $isSuccess = true;
@@ -108,15 +110,8 @@ class CategoryController extends Controller
 
     public function getAll()
     {
-        $isSuccess = true;
-        $msg = 'SUCCESS';
         $data = Category::all();
-
-        return response()->json([
-            'isSuccess' => $isSuccess,
-            'msg' => $msg,
-            'data' => $data,
-        ]);
+        return $this->successResponse($data, "Get All Categories Success!");
     }
 
     public function getbyid(Request $req)

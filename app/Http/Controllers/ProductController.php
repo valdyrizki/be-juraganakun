@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\CreateProductRequest;
 use App\Http\Resources\ProductCollection;
 use App\Http\Resources\ProductResource;
 use App\Models\Product;
@@ -9,6 +10,7 @@ use App\Models\ProductFile;
 use App\Models\ProductImage;
 use App\Models\Stock;
 use App\Models\Transaction;
+use App\Traits\ApiResponseTrait;
 use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -18,39 +20,10 @@ use Illuminate\Support\Str;
 
 class ProductController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     *
-     * @return \Illuminate\Http\Response
-     */
-    public function index()
+    use ApiResponseTrait;
+    public function store(CreateProductRequest $request)
     {
-        //
-    }
-
-    /**
-     * Show the form for creating a new resource.
-     *
-     * @return \Illuminate\Http\Response
-     */
-    public function create()
-    {
-        //
-    }
-
-    /**
-     * Store a newly created resource in storage.
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @return \Illuminate\Http\Response
-     */
-    public function store(Request $request)
-    {
-        $isSuccess = true;
         $data = null;
-        $msg = "Berhasil membuat product " . $request->name;
-
-
         DB::beginTransaction();
 
         $image = $request->image;
@@ -67,8 +40,7 @@ class ProductController extends Controller
                 'user_create' => Auth::id()
             ]);
         } catch (Exception $e) {
-            $msg = $e->getMessage();
-            $isSuccess = false;
+            return $this->errorResponse($e->getMessage(), false, 400);
         }
 
         if ($image != null) {
@@ -99,61 +71,21 @@ class ProductController extends Controller
                 report($e);
                 $out = new \Symfony\Component\Console\Output\ConsoleOutput();
                 $out->writeln($e);
-                $msg .= " - gagal upload image";
                 DB::rollBack();
+                return $this->errorResponse("Gagal upload image!", false, 400);
             }
         }
 
         DB::commit();
 
-        return response()->json([
-            'data' => $data,
-            'isSuccess' => $isSuccess,
-            'msg' => $msg
-        ]);
+        return $this->successResponse($data, "Create product success!");
     }
 
-    /**
-     * Display the specified resource.
-     *
-     * @param  int  $id
-     * @return \Illuminate\Http\Response
-     */
-    public function show($id)
-    {
-        //
-    }
-
-    /**
-     * Show the form for editing the specified resource.
-     *
-     * @param  int  $id
-     * @return \Illuminate\Http\Response
-     */
-    public function edit($id)
-    {
-        //
-    }
-
-    /**
-     * Update the specified resource in storage.
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @param  int  $id
-     * @return \Illuminate\Http\Response
-     */
     public function update(Request $request)
     {
-        $isSuccess = true;
-        $msg = 'Produk berhasil diupdate';
         $data = Product::find($request->product_id);
-
         if (!$data) {
-            return response()->json([
-                'isSuccess' => false,
-                'msg' => 'Produk tidak ditemukan!',
-                'data' => $request->all()
-            ], 400);
+            return $this->errorResponse("ID Produk " . $request->product_id . " tidak ditemukan!", false, 400);
         }
 
         DB::beginTransaction();
@@ -198,8 +130,8 @@ class ProductController extends Controller
                 report($e);
                 $out = new \Symfony\Component\Console\Output\ConsoleOutput();
                 $out->writeln($e);
-                $msg .= " - gagal upload image";
                 DB::rollBack();
+                return $this->errorResponse("Gagal upload file!", false, 400);
             }
         }
 
@@ -214,11 +146,7 @@ class ProductController extends Controller
         $data->save();
         DB::commit();
 
-        return response()->json([
-            'isSuccess' => $isSuccess,
-            'msg' => $msg,
-            'data' => $data,
-        ]);
+        return $this->successResponse($data, "Update product success!");
     }
 
     /**
@@ -229,23 +157,28 @@ class ProductController extends Controller
      */
     public function destroy(Request $request)
     {
-        $isSuccess = true;
-        $msg = 'Produk berhasil dihapus';
-        $data = Product::find($request->product_id);
-        if (!$data) {
-            return response()->json([
-                'isSuccess' => false,
-                'msg' => 'Produk tidak ditemukan!',
-                'data' => 'ID ' . $request->product_id . ' NOT FOUND'
-            ], 400);
-        }
-        $data->delete();
+        DB::beginTransaction();
 
-        return response()->json([
-            'isSuccess' => $isSuccess,
-            'msg' => $msg,
-            'data' => $data,
-        ]);
+        //Validasi
+        $data = Product::find($request->id);
+        if (!$data) {
+            return $this->errorResponse("ID Produk " . $request->id . " tidak ditemukan!", false, 400);
+        }
+        if ($data->stock > 0) {
+            return $this->errorResponse("Masih terdapat stock produk " . $request->id . "!", false, 400);
+        }
+
+        $productImage = ProductImage::where("product_id", $request->id)->first();
+        if (!$productImage) {
+            return $this->errorResponse("ID Produk Image " . $request->id . " tidak ditemukan!", false, 400);
+        }
+
+        $data->delete();
+        $productImage->delete();
+        Storage::delete("/" . $productImage->path);
+        DB::commit();
+
+        return $this->successResponse($data, "Delete product success!");
     }
 
     public function getAll()
@@ -254,12 +187,7 @@ class ProductController extends Controller
         $msg = 'SUCCESS';
         // return Product::all();
         $data = new ProductCollection(ProductResource::collection(Product::all()));
-
-        return response()->json([
-            'isSuccess' => $isSuccess,
-            'msg' => $msg,
-            'data' => $data,
-        ]);
+        return $this->successResponse($data, "Get All Products Success!");
     }
 
     public function get()
@@ -275,26 +203,16 @@ class ProductController extends Controller
         ]);
     }
 
-
-
     public function getByCode(Request $req)
     {
         $isSuccess = true;
         $msg = 'SUCCESS';
-        $data = new ProductResource(Product::find($req->product_id));
+        $data = new ProductResource(Product::find($req->id));
         if (!$data) {
-            return response()->json([
-                'isSuccess' => false,
-                'msg' => 'Produk tidak ditemukan!',
-                'data' => 'ID ' . $req->product_id . ' NOT FOUND'
-            ], 400);
+            return $this->errorResponse("ID Produk " . $req->id . " tidak ditemukan!", false, 400);
         }
 
-        return response()->json([
-            'isSuccess' => $isSuccess,
-            'msg' => $msg,
-            'data' => $data,
-        ]);
+        return $this->successResponse($data, "Get Products " . $req->id . " Success!");
     }
 
     public function getByCategory(Request $req)
